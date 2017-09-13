@@ -1,4 +1,5 @@
-# `PyBEM2D: A Python-based Boundary Element Library`
+PyBEM2D: A Python-based Boundary Element Library
+==============================================================================================
 
 `PyBEM2D` is a open source boundary element library for two dimensional geometries. It is designed for academic users to quickly learn and test various BEM's techniques under the framework of Python. With the modular code structure and easy-to-use interfaces to `PyBEM2D`, it is easy to get started and added more features for academic users. 
 
@@ -13,7 +14,7 @@ Currently available features include:
 `PyBEM2d` is currently support for `64-bit` `Windows` and `Linux` platforms, several `Jupyter-Notebook` examples are provided 
 
 
-# `Solving A potential porblem in PyBEM2d`
+# Solving A potential porblem in PyBEM2d
 
 <p align="center">
   <img src = "https://github.com/BinWang0213/PyBEM2D/blob/master/img/KingDomain.png">
@@ -48,7 +49,7 @@ puv=KingDomain.Solve()
 puv=KingDomain.plot_Solution(v_range=(0,40),p_range=(10,100))
 ```
 
-# `Reference`
+# Reference
 
 Bin Wang (binwang.0213@gmail.com), Yin Feng
 Department of Petroleum Engineering, Univeristy of Louisiana at Lafayette, Lafayette, US, 70506
@@ -58,7 +59,7 @@ If you make use of `PyBEM2D` please reference appropriately. The algorithmic dev
 `[1]` - Wang, B., Feng, Y., Du, J., et al. (2017) An Embedded Grid-Free Approach for Near Wellbore Streamline Simulation. doi:10.2118/SPE-182614-MS
 https://www.researchgate.net/publication/313665682_An_Embedded_Grid-Free_Approach_for_Near_Wellbore_Streamline_Simulation
 
-# `License`
+# License
 
 This code is released under the terms of the BSD license, and thus free for commercial and research use. Feel free to use the code into your own project with a PROPER REFERENCE.  
 
