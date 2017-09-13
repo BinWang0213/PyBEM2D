@@ -2,8 +2,7 @@ PyBEM2D: A Python-based Boundary Element Library
 ==============================================================================================
 
 <p align="center">
-  <img src = "https://github.com/BinWang0213/PyBEM2D/blob/master/img/Multidomain1.png">&nbsp
-  <img src = "https://github.com/BinWang0213/PyBEM2D/blob/master/img/Multidomain2.png">
+  <img src = "https://github.com/BinWang0213/PyBEM2D/blob/master/img/Multidomain.png">
 </p>
 
 `PyBEM2D` is a open source boundary element library for two dimensional geometries. It is designed for academic users to quickly learn and test various BEM's techniques under the framework of Python. With the modular code structure and easy-to-use interfaces to `PyBEM2D`, it is easy to get started and added more features for academic users. 
