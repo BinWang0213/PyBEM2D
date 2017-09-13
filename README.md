@@ -10,6 +10,7 @@ Currently available features include:
 * Support for constant,linear and quadratic element types
 * Corner treatment with double node algorihtm [Brebbia, 1991]
 * Near singular integration with adaptive element subdivision algorithm [Gao et al. 2014]
+* Multi-domain problem and parallel computing with domain decomposition method [Wang et al, 2018]
 
 `PyBEM2d` is currently support for `64-bit` `Windows` and `Linux` platforms, several `Jupyter-Notebook` examples are provided 
 
