@@ -21,7 +21,7 @@ Currently available features include:
 `PyBEM2d` is currently support for `64-bit` `Windows` and `Linux` platforms, several `Jupyter-Notebook` examples are provided 
 
 
-# Solving A potential porblem in PyBEM2d
+# Solving A potential porblem in PyBEM2D
 
 <p align="center">
   <img src = "https://github.com/BinWang0213/PyBEM2D/blob/master/img/KingDomain.png">
