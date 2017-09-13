@@ -1,3 +1,0 @@
-dir
-ipython notebook 
-pause
