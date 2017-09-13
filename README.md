@@ -1,5 +1,7 @@
 PyBEM2D: A Python-based Boundary Element Library
 ==============================================================================================
+Bin Wang (binwang.0213@gmail.com), Yin Feng
+Department of Petroleum Engineering, Univeristy of Louisiana at Lafayette, Lafayette, US, 70506
 
 <p align="center">
   <img src = "https://github.com/BinWang0213/PyBEM2D/blob/master/img/Multidomain.png" height="250">
@@ -55,9 +57,6 @@ puv=KingDomain.plot_Solution(v_range=(0,40),p_range=(10,100))
 ```
 
 # Reference
-
-Bin Wang (binwang.0213@gmail.com), Yin Feng
-Department of Petroleum Engineering, Univeristy of Louisiana at Lafayette, Lafayette, US, 70506
 
 If you make use of `PyBEM2D` please reference appropriately. The algorithmic developments behind `PyBEM2D` have been the subject of a number of publications, beginning with my graduate research at the University of Louisiana at Lafayette:
 
