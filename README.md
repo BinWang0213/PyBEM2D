@@ -19,7 +19,7 @@ Currently available features include:
 # `Solving A potential porblem in PyBEM2d`
 
 <p align="center">
-  <img src = "../master/PyBEM2D/img/KingDomain.png">
+  <img src = "https://github.com/BinWang0213/PyBEM2D/blob/master/img/KingDomain.png">
 </p>
 
 After downloading and unzipping the current <a href="https://github.com/BinWang0213/PyBEM2D/archive/master.zip">repository</a>, navigate to the library directory and run a simple example contained in `KingDomain2D.ipynb`:
