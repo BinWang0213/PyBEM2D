@@ -301,7 +301,7 @@ def build_matrix_const(panels):
     #Boundary Condition enforcement
     #Assemble matrix A and reorder matrix H and G (Switching column)            
     for j in range(N):
-        if (panels[j].bd_Indicator==0):#If boundary condition is Neumann then interchange G-H G*U=H*P
+        if (panels[j].bd_Indicator==0):#If boundary condition is Dirichlet then interchange G-H G*U=H*P
             for i in range(N):
                 temp=H[i,j]
                 H[i,j]=-G[i,j]

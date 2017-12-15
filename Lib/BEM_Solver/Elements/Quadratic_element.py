@@ -498,6 +498,7 @@ def build_matrix_quadratic(panels):
     #print(H)
     #print(G.shape)
     #print(G)
+    #print(A)
     return A,b,G_origin,H_origin,G
 
 def solution_allocate_quadratic(panels,X,debug=0):
@@ -522,6 +523,7 @@ def solution_allocate_quadratic(panels,X,debug=0):
     #Robin Boundary condition convervation: Q=R-alpha*P
     for i in range(1,NE+1):
         if(panels[i-1].Robin_alpha>0):
+            #print(panels[i-1].Robin_alpha)
             #print(i)
             #print(2*i-1,2*i,2*i+1)
             #print(3*(i-1)+1,3*(i-1)+2,3*(i-1)+3)            

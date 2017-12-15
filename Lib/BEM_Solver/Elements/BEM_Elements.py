@@ -123,7 +123,7 @@ class BEM_element(object):
             self.v1,self.v2,self.v3=0,0,0              # pressure derivate on y direction
             
             
-    def set_BC(self,bd_Indicator,bd_value,mode=0):
+    def set_BC(self,bd_Indicator,bd_value,Robin_a=1,mode=0):
         #set up boundary condition for a element
         #mode-0 constant value along a element
         #mode-1 assign (1,2,3) values for a element
@@ -131,7 +131,7 @@ class BEM_element(object):
         self.bd_Indicator=bd_Indicator
         if(bd_Indicator==2):#Robin boundary conditions
             self.bd_Indicator=1
-            self.Robin_alpha=1
+            self.Robin_alpha=Robin_a
 
         if (self.element_type=="Const"):
             if(mode==0):
