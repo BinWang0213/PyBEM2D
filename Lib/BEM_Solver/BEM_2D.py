@@ -217,7 +217,7 @@ class BEM2D:
 
 
     ###########Boundary Conditions Module#################
-    def set_BoundaryCondition(self,DirichletBC=[],NeumannBC=[],RobinBC=[],update=0,mode=0):
+    def set_BoundaryCondition(self,DirichletBC=[],NeumannBC=[],RobinBC=[],update=0,mode=0,Robin_a=1):
         """Set up boundary conditions for generated bem mesh using element marker
            Dirichlet or Neumann boundary can be applied for each edge or trace
         
@@ -270,14 +270,14 @@ class BEM2D:
                     if(bd_markerID>self.Num_boundary-1):#this is a trace
                         tID=elementID[j][0]
                         eID=elementID[j][1]
-                        self.BEs_trace[tID][eID].set_BC(BCid,BCs[i][1]) # Neumann-1   Dirichlet-0
+                        self.BEs_trace[tID][eID].set_BC(BCid,BCs[i][1],Robin_a) # Neumann-1   Dirichlet-0 Robin-2
                     else:#this is a edge element
                         eID=elementID[j]
                         if(mode==0):
-                            self.BEs_edge[eID].set_BC(BCid,BCs[i][1]) # Neumann-1   Dirichlet-0
+                            self.BEs_edge[eID].set_BC(BCid,BCs[i][1],Robin_a) # Neumann-1   Dirichlet-0 Robin-2
                         elif(mode==1):
                             bd_values=self.bd2element(self.TypeE_edge,eleid=j,node_values=BCs[i][1])
-                            self.BEs_edge[eID].set_BC(BCid,bd_values,mode=1)
+                            self.BEs_edge[eID].set_BC(BCid,bd_values,Robin_a,mode=1)
 
 
     def print_debug(self):
@@ -299,23 +299,23 @@ class BEM2D:
             if(pl.element_type=="Linear"):
                 print("(%s)%s\t%5.3f\t%.3f\t%.4s\t%d\t%d\t%.3f" % 
                      (i+1,i+1,pl.xa,pl.ya,pl.element_type,pl.bd_marker,pl.bd_Indicator,pl.bd_value1))
-            if(i==self.Ne_edge-1):
-                print("(%s)%s\t%5.3f\t%.3f\t%.4s\t%d\t%d\t%.3f" % 
-                     (i+1,0+1,pl.xb,pl.yb,pl.element_type,pl.bd_marker,pl.bd_Indicator,pl.bd_value2))
-            else:
-                print("(%s)%s\t%5.3f\t%.3f\t%.4s\t%d\t%d\t%.3f" %
-                     (i+1,i+2,pl.xb,pl.yb,pl.element_type,pl.bd_marker,pl.bd_Indicator,pl.bd_value2))
+                if(i==self.Ne_edge-1):
+                    print("(%s)%s\t%5.3f\t%.3f\t%.4s\t%d\t%d\t%.3f" % 
+                        (i+1,0+1,pl.xb,pl.yb,pl.element_type,pl.bd_marker,pl.bd_Indicator,pl.bd_value2))
+                else:
+                    print("(%s)%s\t%5.3f\t%.3f\t%.4s\t%d\t%d\t%.3f" %
+                        (i+1,i+2,pl.xb,pl.yb,pl.element_type,pl.bd_marker,pl.bd_Indicator,pl.bd_value2))
             if(pl.element_type=="Quad"):
                 print("(%s)%s\t%5.3f\t%.3f\t%.4s\t%d\t%d\t%.3f" % 
                      (i+1,2*i+1,pl.xa,pl.ya,pl.element_type,pl.bd_marker,pl.bd_Indicator,pl.bd_value1))
                 print("(%s)%s\t%5.3f\t%.3f\t%.4s\t%d\t%d\t%.3f" % 
                      (i+1,2*i+2,pl.xc,pl.yc,pl.element_type,pl.bd_marker,pl.bd_Indicator,pl.bd_value2))
-            if(i==self.Ne_edge-1):
-                print("(%s)%s\t%5.3f\t%.3f\t%.4s\t%d\t%d\t%.3f" % 
-                     (i+1,0+1,pl.xb,pl.yb,pl.element_type,pl.bd_marker,pl.bd_Indicator,pl.bd_value3))
-            else:
-                print("(%s)%s\t%5.3f\t%.3f\t%.4s\t%d\t%d\t%.3f" % 
-                     (i+1,2*i+3,pl.xb,pl.yb,pl.element_type,pl.bd_marker,pl.bd_Indicator,pl.bd_value3))
+                if(i==self.Ne_edge-1):
+                    print("(%s)%s\t%5.3f\t%.3f\t%.4s\t%d\t%d\t%.3f" % 
+                        (i+1,0+1,pl.xb,pl.yb,pl.element_type,pl.bd_marker,pl.bd_Indicator,pl.bd_value3))
+                else:
+                    print("(%s)%s\t%5.3f\t%.3f\t%.4s\t%d\t%d\t%.3f" % 
+                        (i+1,2*i+3,pl.xb,pl.yb,pl.element_type,pl.bd_marker,pl.bd_Indicator,pl.bd_value3))
     
         print("Trace No.:%s" %(self.Num_trace))
         print("Point\tX\tY\tType\tMarker\tBC_type\tBC_value")
