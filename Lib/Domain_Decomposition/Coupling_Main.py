@@ -37,6 +37,8 @@ from .Schemes.P_RR import PRR
 from .Schemes.P_NN import PNN
 from .Schemes.P_DD import PDD
 from .Schemes.S_DN import SDN
+from .Schemes.CP_RR import CPRR
+
 
 
 #####################################
@@ -110,6 +112,7 @@ class DDM_Solver:
            2. Parallel Dirichlet-Dirichlet method
            3. Parallel Robin-Robin method
            4. Sequential Dirichlet-Neumann method
+           5. Classic Parallel Robin-Robin
            
            Following acclerating technqiue supported:
            1. Dynamic Relaxation method
@@ -139,7 +142,10 @@ class DDM_Solver:
             SDN(self,alpha,TOL,opt)
         #Parallel Robin-Robin method with dynamic relaxation paramters
         if(Method=='P-RR'):
-            PRR(self,alpha,TOL,opt)
+            PRR(self,alpha,1.0,TOL,opt)
+        #Classic Parallel Robin-Robin method with dynamic relaxation paramters
+        if(Method=='CP-RR'):
+            CPRR(self,alpha,TOL,opt)
         #Berrone's Conguate gradient method [not available now]
         if(Method=="CG"):
             self.CG_loop(TOL)
