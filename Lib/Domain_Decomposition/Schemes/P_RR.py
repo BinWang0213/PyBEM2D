@@ -23,7 +23,7 @@ import numpy as np
 #
 #######################################
     
-def PRR(obj,alpha,TOL,opt):
+def PRR(obj,alpha,robin_a,TOL,opt):
         """Robin-Robin iterative loop
            Reference: Section 3.3 in the reference paper
         ------------------------
@@ -78,10 +78,10 @@ def PRR(obj,alpha,TOL,opt):
 
             if(it>2):
                 if(opt==1):
-                    alpha_opt=PRR_OPT(obj,R_old_old,P_cur_old,P_con_old,Q_cur_old,Q_con_old,alpha)
+                    alpha_opt=PRR_OPT(obj,R_old_old,P_cur_old,P_con_old,Q_cur_old,Q_con_old,alpha,robin_a)
                     alpha=alpha_opt
                     #print(alpha_opt)
-            
+            #alpha=0.1
             #Step1. Prepare and update BCs for all domains
             for i in range(obj.NumObj):#For each subdomain
                 Num_shared_edge=len(obj.Connect[i])
@@ -103,7 +103,7 @@ def PRR(obj,alpha,TOL,opt):
                             R_old=np.zeros(len(obj.BEMobjs[i].mesh_nodes[bdID])-1) #Const element number = nodes number -1
                         #Update new Neumann BC into system
                         bc_Robin=[(bdID,R_old)]
-                        obj.BEMobjs[i].set_BoundaryCondition(RobinBC=bc_Robin,update=1,mode=1)
+                        obj.BEMobjs[i].set_BoundaryCondition(RobinBC=bc_Robin,update=1,mode=1,Robin_a=robin_a)
                     if(it>0):
                         R_old=PQ[1]+PQ[0]
 
@@ -113,13 +113,14 @@ def PRR(obj,alpha,TOL,opt):
                         Q_connect=obj.Interp_intersection(i,ConnectObjID,Intersect,varID=1)
                         
                         if(debug2): print('Current',P_current,'Connect',P_connect)
-                    
-                        R_new=R_old-alpha*(P_current-P_connect+Q_current+Q_connect)
+
+                        #R_new=R_old-alpha*(robin_a*(P_current-P_connect)+Q_current+Q_connect)
+                        R_new=R_old-alpha*((P_current-P_connect)+robin_a*(Q_current+Q_connect))
                         if(debug2): print('r_new',R_new,'r_old',R_old)
 
                         #Update new Neumann BC into system
                         bc_Robin=[(bdID,R_new)]
-                        obj.BEMobjs[i].set_BoundaryCondition(RobinBC=bc_Robin,update=1,mode=1)
+                        obj.BEMobjs[i].set_BoundaryCondition(RobinBC=bc_Robin,update=1,mode=1,Robin_a=robin_a)
                     
                         error.append(max(abs(R_new-R_old))/max(abs(R_new)))
                     #print(abs(R_new-R_old),abs(R_new))
@@ -150,7 +151,7 @@ def PRR(obj,alpha,TOL,opt):
         obj.plot_Convergence()
 
 
-def PRR_OPT(obj,R_old_old,P_cur_old,P_con_old,Q_cur_old,Q_con_old,alpha_old):
+def PRR_OPT(obj,R_old_old,P_cur_old,P_con_old,Q_cur_old,Q_con_old,alpha_old,robin_a):
         #Calculate the optimal relxation paramters based on error function J
         #Equation 17 in the Reference Paper
 
@@ -187,7 +188,8 @@ def PRR_OPT(obj,R_old_old,P_cur_old,P_con_old,Q_cur_old,Q_con_old,alpha_old):
                     q_con_dif=Q_connect-Q_con_old[i][j]
                     q_ba=q_con_dif+q_cur_dif
 
-                    hq_ba=h_ba+q_ba
+                    #hq_ba=robin_a*h_ba+q_ba
+                    hq_ba=h_ba+robin_a*q_ba
                     #print("q_dif2",q_dif,h_ba)
                     #print('nom2',np.inner(q_dif,h_ba))
                     #print('dnom2',np.linalg.norm(h_ba)**2)
@@ -201,5 +203,8 @@ def PRR_OPT(obj,R_old_old,P_cur_old,P_con_old,Q_cur_old,Q_con_old,alpha_old):
             #alpha_opt=alpha_old#Use the alpha from the last step
             print("Warning! Negative alpha!")
 
+        #Test of bounded case
+        #if(alpha_opt > 1.0):
+        #    alpha_opt = 1.0
         #print('!!!',-nom,denom,alpha_opt)
         return alpha_opt

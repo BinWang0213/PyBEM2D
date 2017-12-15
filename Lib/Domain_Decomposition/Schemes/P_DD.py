@@ -180,6 +180,10 @@ def PDD_OPT(obj, P_old_old,Q_cur_old,Q_con_old,alpha_old):
         if(alpha_opt<0.0):#Special case: P-DD may have negative alpha
             alpha_opt=alpha_old#Use the alpha from the last step
             print("Warning! Negative alpha!")
+        
+        #Test of bounded case
+        #if(alpha_opt>1.0):
+        #    alpha_opt=1.0
             #alpha_opt=5.0
         #print('!!!',-nom,denom,alpha_opt)
         return alpha_opt

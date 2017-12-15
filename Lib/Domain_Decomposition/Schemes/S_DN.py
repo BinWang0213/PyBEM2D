@@ -214,6 +214,9 @@ def SDN_OPT(obj, P_cur_old,P_con_old):
             alpha_opt=1
         if (alpha_opt<0.0):
             alpha_opt=0.1
+        #Test of bounded case
+        #if(alpha_opt > 1.0):
+        #    alpha_opt = 1.0
         #print('!!!',-nom,denom,alpha_opt)
         return alpha_opt
     

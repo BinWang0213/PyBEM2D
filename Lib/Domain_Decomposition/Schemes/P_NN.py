@@ -181,6 +181,7 @@ def PNN_OPT(obj, Q_old_old,P_cur_old,P_con_old):
                     
                     
         alpha_opt=nom/denom
+        #Test of bounded case
         #if(alpha_opt>1.0):
         #    alpha_opt=1.0
         #print('!!!',-nom,denom,alpha_opt)
