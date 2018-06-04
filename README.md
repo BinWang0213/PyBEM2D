@@ -34,28 +34,31 @@ After downloading and unzipping the current <a href="https://github.com/BinWang0
 from Lib.BEM_Solver.BEM_2D import *
 from Lib.Domain_Decomposition.Coupling_Main import *
 
-KingDomain=BEM2D()
+BEM_Case1=BEM2D()
 
-#1.Build Mesh-#Anti-clock wise for internal domain
-Boundary_vert=[(0.0, 0.0), (5.0, 0.0), (5.0, 1.0), (3.0, 1.0),(3.0,2.0), #bottom
-               (4.5,2.0),(4.5,3.0),(3.0,3.0),(3.0,4.0),                  #middle
-               (4.0,4.0),(4.0,5.0),(1.0,5.0),(1.0,4.0),(2.0,4.0),        #top
-               (2.0,3.0),(0.5,3.0),(0.5,2.0),(2.0,2.0),                  #middle
-               (2.0,1.0),(0.0,1.0)]  #bottom
-element_esize=1.0
+#1.Build Mesh
+Boundary_vert=[(0.0, 0.0), (1.0, 0.0), (1.0, 0.75), (0.0, 0.75)] #Anti-clock wise for internal domain
 
-KingDomain.set_Mesh(Boundary_vert,[],element_esize,[],Type="Quad")
+Trace_vert=[]
+L=[((0.1, 0.15), (0.1, 0.6)),((0.1, 0.15), (0.3, 0.15))]
+S=[((0.6,0.6),(0.38,0.6)),((0.38,0.6),(0.38,0.38)),((0.38,0.38),(0.6,0.38)),((0.6,0.38),(0.6,0.14)),((0.6,0.14),(0.38,0.14))]
+U= [((0.72,0.6),(0.72,0.14)),((0.72,0.14),(0.92,0.14)),((0.92,0.14),(0.92,0.6))]
+Points= [((0.195,0.35),(0.205,0.35)),
+      ((0.795,0.35),(0.805,0.35))]
+Trace_vert=L+S+U+Points
+element_esize=0.2 #Edge mesh is important to overall mass balance
+element_tszie=0.1 #Trace mesh size
+
+BEM_Case1.set_Mesh(Boundary_vert,Trace_vert,element_esize,element_tszie,Type="Const")
 
 #2.Set Boundary condition
-bc0=[(10,100),(0,10)]
-bc1=[(5,-10),(15,-10)]
+bc0=[(4,50),(5,50),(11,50),(12,50),(13,50),(14,10),(15,10)]
+bc1=[(6,-100),(7,-100),(8,-100),(9,-100),(10,-100)]
+BEM_Case1.set_BoundaryCondition(DirichletBC=bc0,NeumannBC=bc1)
 
-KingDomain.set_BoundaryCondition(DirichletBC=bc0,NeumannBC=bc1)
-
-#3. Solve and Show Solution
-puv=KingDomain.Solve()
-
-puv=KingDomain.plot_Solution(v_range=(0,40),p_range=(10,100))
+#3. Solve and plot
+Mat=BEM_Case1.Solve()
+PUV=BEM_Case1.plot_Solution(v_range=(-150,250),p_range=(30,50),resolution=30)
 ```
 
 # Reference
