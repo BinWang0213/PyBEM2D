@@ -1,6 +1,7 @@
 PyBEM2D: A Python-based Boundary Element Library
 ==============================================================================================
 Bin Wang (binwang.0213@gmail.com), Craft and Hawkins Department of Petroleum Engineering, Louisiana State University, Baton Rouge, US
+
 Yin Feng, Department of Petroleum Engineering, Univeristy of Louisiana at Lafayette, Lafayette, US
 
 <p align="center">
