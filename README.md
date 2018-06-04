@@ -27,7 +27,7 @@ Currently available features include:
   <img src = "https://github.com/BinWang0213/PyBEM2D/blob/master/img/KingDomain.png">
 </p>
 
-After downloading and unzipping the current <a href="https://github.com/BinWang0213/PyBEM2D/archive/master.zip">repository</a>, navigate to the library directory and run a simple example contained in `KingDomain2D.ipynb`:
+After downloading and unzipping the current <a href="https://github.com/BinWang0213/PyBEM2D/archive/master.zip">repository</a>, navigate to the library directory and run a simple example contained in `Example/KingDomain2D.ipynb`:
 ```python
 from Lib.BEM_Solver.BEM_2D import *
 from Lib.Domain_Decomposition.Coupling_Main import *
