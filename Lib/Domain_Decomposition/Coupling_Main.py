@@ -49,7 +49,8 @@ from .Schemes.CP_RR import CPRR
 
 class DDM_Solver:
     """Class object for iterative solver"""
-    def __init__(self,BEMobj=[],Intersection=[],Connection=[]):
+
+    def __init__(self, BEMobj=[], Connection=[], Intersection=[]):
         """Init the multidomain problem by given the BEMobj and connection table
            Assume a non-conforming mesh are given
     
@@ -79,6 +80,7 @@ class DDM_Solver:
         Connect    -- Connect table between sub-BEM2D problems [(Connected BEMobj,Connected edge idx)..]
                       The default order is [BEMojb index]                    (BEMobj1)....
         Method     -- Itertive coupling method (P-DD,P-NN,P-RR,S-DN)
+        DFN        -- 1 coupling between fractures, 0 coupling between domain boundary
         
         Numobj     -- Number of subdomains
         NumInt     -- NUmber of intersections(Interfaces)
@@ -91,6 +93,7 @@ class DDM_Solver:
         self.BEMobjs=BEMobj[:] #copy the list, [list]=[list] just passed the reference
         self.Intersects=Intersection
         self.Connect=Connection
+        self.TraceOn=0
         
         self.Method="CG"
         #[Derived Parameters]
@@ -101,6 +104,7 @@ class DDM_Solver:
         self.error_abs=[]  #abs error at interface,np.sum(abs(Q_new-Q_old)+abs(P_current-P_connect))
         
         self.plot_mesh()
+        
     
     ####Main fucntions####
     def Solve_Iter(self,Method="CG",initial_guess=0.0,TOL=1e-5,alpha=0.1,opt=0):
@@ -131,12 +135,19 @@ class DDM_Solver:
         
         self.Method=Method
         
+        if(self.TraceOn == 1):
+            print("DDM is not support internal Trace now!")
+            #return
+
         #Parallel Neumann-Neumann method with dynamic relaxation paramters
         if(Method=="P-NN"):
             PNN(self,alpha,TOL,opt)
         #Parallel Dirichlet-Dirichlet method with dynamic relaxation paramters
         if(Method=='P-DD'):
-            PDD(self,alpha,TOL,opt)
+            if(self.TraceOn==1):
+                PDD_DFN(self, alpha, TOL, opt)
+            else:
+                PDD(self,alpha,TOL,opt)
         #Sequential Dirichlet-Neumann method with dynamic relaxation paramters
         if(Method=='S-DN'):
             SDN(self,alpha,TOL,opt)
@@ -166,11 +177,17 @@ class DDM_Solver:
         Author:Bin Wang(binwang.0213@gmail.com)
         Date: July. 2017
         """
+
+        if(self.BEMobjs[0].TraceOn==1):
+            self.TraceOn=1
+            #print('Plot Mesh only support non-DFN type!')
+            #return
+
         plt.figure(figsize=(6, 6))
         plt.axes().set_aspect('equal')
-        plt.axes().set_title('BEM Mesh',fontsize=15)
-        plt.axes().set_xlabel('x(m)')
-        plt.axes().set_ylabel('y(m)')
+        plt.title('BEM Mesh',fontsize=15)
+        plt.xlabel('x(m)')
+        plt.ylabel('y(m)')
 
         #plt.xticks(np.arange(-3, 9, 1))
         #plt.yticks(np.arange(-2, 5,1))
@@ -189,6 +206,22 @@ class DDM_Solver:
             plt.plot(np.append([BE.xa for BE in BEMobj.BEs_edge], BEMobj.BEs_edge[0].xa), 
              np.append([BE.ya for BE in BEMobj.BEs_edge], BEMobj.BEs_edge[0].ya), 
              'bo-',markersize=5)
+            #Trace elements
+            if (self.TraceOn):
+                for i in range(BEMobj.Num_trace):
+                    plt.plot([BEMobj.BEs_trace[i][0].xc, BEMobj.BEs_trace[i][0].xc],
+                         [BEMobj.BEs_trace[i][0].yc, BEMobj.BEs_trace[i][0].yc],
+                         'go-',  markersize=5)
+                    plt.plot([BEMobj.BEs_trace[i][0].xa, BEMobj.BEs_trace[i][0].xb],
+                         [BEMobj.BEs_trace[i][0].ya, BEMobj.BEs_trace[i][0].yb],
+                         'go-',  markersize=2)
+                    for j in range(BEMobj.NumE_t[i] - 1):
+                            plt.plot([BEMobj.BEs_trace[i][j].xa, BEMobj.BEs_trace[i][j + 1].xb],
+                                     [BEMobj.BEs_trace[i][j].ya, BEMobj.BEs_trace[i][j + 1].yb],
+                                     'go-', markersize=2)
+                            plt.plot([BEMobj.BEs_trace[i][j].xc, BEMobj.BEs_trace[i][j + 1].xc],
+                                     [BEMobj.BEs_trace[i][j].yc, BEMobj.BEs_trace[i][j + 1].yc],
+                                     'go-', markersize=5)
             
             if (BEMobj.BEs_edge[0].element_type=="Quad"):
                 plt.scatter([BE.xc for BE in BEMobj.BEs_edge], 

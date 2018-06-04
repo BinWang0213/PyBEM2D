@@ -65,6 +65,7 @@ def SDN(obj,alpha,TOL,opt):
         #for optimal relxation parameters
         P_cur_old=obj.new_var()#h^k-1 for current side
         P_con_old=obj.new_var()#h^k-1 for connect side
+        AB_mat = []  # BEM Matrix for each domain
 
         MaxIter=50
         for it in range(MaxIter):
@@ -125,8 +126,10 @@ def SDN(obj,alpha,TOL,opt):
                         bc_Neumann=[(bdID,Q_new)]
                         obj.BEMobjs[i].set_BoundaryCondition(NeumannBC=bc_Neumann,update=1,mode=1)
 
-                        obj.BEMobjs[i].DFN=0
-                        obj.BEMobjs[i].Solve()
+                        if(it == 0):  # Store the intial BEM Matrix
+                            AB_mat.append(obj.BEMobjs[i].Solve())
+                        else:  # Update solution by only update the boundary condition, Fast
+                            AB_mat[i] = obj.BEMobjs[i].Solve(DDM=1, AB=[AB_mat[i][0], AB_mat[i][2]])
                     
                     #Update new Dirichelt BC into system-left
                     if(i<ConnectObjID):#this is left side domain
@@ -134,8 +137,10 @@ def SDN(obj,alpha,TOL,opt):
                         obj.BEMobjs[i].set_BoundaryCondition(DirichletBC=bc_Dirichlet,update=1,mode=1)
                         
                         #Sequential Scheme with dynamic alpha (Lin, 1996, An interative finite element-boundary element algorithm)
-                        obj.BEMobjs[i].DFN=0
-                        obj.BEMobjs[i].Solve()
+                        if(it == 0 and len(AB_mat)==0):  # Store the intial BEM Matrix
+                            AB_mat.append(obj.BEMobjs[i].Solve())
+                        else:  # Update solution by only update the boundary condition, Fast
+                            AB_mat[i] = obj.BEMobjs[i].Solve(DDM=1, AB=[AB_mat[i][0], AB_mat[i][2]])
 
                         if(it>0): 
                             error.append(max(abs(P_new-P_old))/max(abs(P_new)))

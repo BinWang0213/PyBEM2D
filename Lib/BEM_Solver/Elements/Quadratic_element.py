@@ -172,7 +172,7 @@ def GHCalc_quadratic_adapative(xi,yi,panelj,bd_int="internal"):
         JAC=0  #Jacobian for higher order element which replaced length/2 with linear element
         JAC_bar=1 #subdivision jacobian transoform for local and global coordinate
         #if Trigger_sub==1: JAC_bar=0.5*(x3_sub-x1_sub) #John. T.Katsikadelis p146   Gernot Beer p148
-    #Boundary solution variable-index start from 1
+        #Boundary solution variable-index start from 1
         phi=np.zeros(3+1) #shape function 1,2,3   phi(phi-1)/2, 1-phi^2,phi(phi+1)/2
         x1_sub,x3_sub=0,0
         
@@ -328,9 +328,12 @@ def Gii_singular_quadratic(panelj,case):
 
 
 ######################## Solver Module-Matrix assemble and field point solve ########################
-def build_matrix_quadratic(panels):
+def build_matrix_quadratic(panels, DDM=0, AB=[]):
     #All variables start from 1
     debug=0
+
+    if(DDM == 1 and AB != 'none'):
+        return update_matrix_quadratic(panels,AB)
 
     NE=len(panels) #number of elements
     N=2*NE #number of nodes
@@ -393,7 +396,7 @@ def build_matrix_quadratic(panels):
     
     H_origin=np.copy(H)
     G_origin=np.copy(G)
-
+    
 
     #2. Reorder the matrix based on Dirichlet and Neumann boundary condition
     #prepare KODE for Book's program,index from 1 and N+1=1
@@ -499,7 +502,8 @@ def build_matrix_quadratic(panels):
     #print(G.shape)
     #print(G)
     #print(A)
-    return A,b,G_origin,H_origin,G
+    #print(H_origin)
+    return A,b,G,G_origin,H_origin
 
 def solution_allocate_quadratic(panels,X,debug=0):
     NE=len(panels) #BE number
@@ -665,41 +669,72 @@ def Field_Solve_quadratic(xi,yi,panels,elementID=-1):
     return p,-u,-v
 
 
-def calcP_bd(Pts,Element):
-    #calculate the p on a specific element
-    phi=Element.get_ShapeFunc(Pts)
-    Pi=[Element.P1,Element.P2,Element.P3]
+def update_matrix_quadratic(panels,AB=[]):
     
-    p=0.0
+    NE=len(panels) #number of elements
+    N=2*NE #number of nodes
+    
+    #Collecting prescribed BC values
+    debug = 0
+    A = AB[0]
+    G = AB[1]
+
+    #3.Assemble vector b
+    #Prepare DFI for book's program
+    DFI = np.zeros(3 * NE, dtype=float)
+    for i, pl in enumerate(panels):
+        DFI[3 * i + 0] = panels[i].bd_value1
+        DFI[3 * i + 1] = panels[i].bd_value2
+        DFI[3 * i + 2] = panels[i].bd_value3
+    #print(DFI)
+
+    b = np.zeros(2 * NE, dtype=float)
+    for i in range(N):  # BE
+        b[i] = 0
+        for j in range(3 * NE):  # BEs
+                b[i] = b[i] + G[i, j] * DFI[j]
+    
+    return A,b,G
+
+
+
+
+def calcP_bd(Pts, Element):
+    #calculate the p on a specific element
+    phi = Element.get_ShapeFunc(Pts)
+    Pi = [Element.P1, Element.P2, Element.P3]
+
+    p = 0.0
     for i in range(3):
-        p+=phi[i]*Pi[i]
+        p += phi[i] * Pi[i]
 
     return p
 
-def calcUV_bd(Pts,Element,P_Pts=-1,backward=0):
+
+def calcUV_bd(Pts, Element, P_Pts=-1, backward=0):
     #calculate the uv on a specific element using (Pts2-Pts)/dist
     #Default forward:Pts .--. Pts2 backward:Pts2 .--. Pts
 
-    dist=0.000001
+    dist = 0.000001
 
-    Pts=np.array(Pts)
-    unit_vector=np.array((Element.tx,Element.ty))
+    Pts = np.array(Pts)
+    unit_vector = np.array((Element.tx, Element.ty))
 
-    if (P_Pts==-1):
-        P_Pts=calcP_bd(Pts,Element)
+    if (P_Pts == -1):
+        P_Pts = calcP_bd(Pts, Element)
 
-    if(backward!=1):#forward
-        Pts2=Pts+dist*unit_vector
-        temp=(calcP_bd(Pts2,Element)-P_Pts)/dist
-        
-    else:#backward
-        Pts2=Pts-dist*unit_vector
-        temp=(P_Pts-calcP_bd(Pts2,Element))/dist
+    if(backward != 1):  # forward
+        Pts2 = Pts + dist * unit_vector
+        temp = (calcP_bd(Pts2, Element) - P_Pts) / dist
 
-    u=temp*Element.tx
-    v=temp*Element.ty
+    else:  # backward
+        Pts2 = Pts - dist * unit_vector
+        temp = (P_Pts - calcP_bd(Pts2, Element)) / dist
 
-    return u,v
+    u = temp * Element.tx
+    v = temp * Element.ty
+
+    return u, v
 
 
     

@@ -34,6 +34,7 @@ class BEM_element(object):
         
         Boundary Element Type:
 
+        [Continuous Element]
         Type        Independent-Node    Sharded-Node    Continuous?      a         c        b    
         Constant        Pts_c(1)              -              No          |--------|*|--------|
         Linear          Pts_a(1)           Pts_b(1)          Yes         |*|---------------|*|
@@ -82,6 +83,8 @@ class BEM_element(object):
 
         self.d1=0.8 #Node offset from Pts_c to Pts_a
         self.d2=0.8 #Node offset from Pts_c to Pts_b
+
+        self.ndof=0
         
         #[Properties]
         self.element_type=Type
@@ -97,6 +100,7 @@ class BEM_element(object):
             self.P1=0                                  # pressue for this element (mid point)
             self.Q1=0                                  # flux for this element (mid point)
             self.u1,self.v1=0,0                        # piece-wise constant for each element (mid point)
+            self.ndof=1
         
         if (self.element_type=="Linear"):
             self.bd_value1=0                           # boundary condition value1
@@ -108,6 +112,7 @@ class BEM_element(object):
             self.q1,self.q2=0,0                        # flux on the first,second node
             self.u1,self.u2=0,0                        # pressure derivative on x direction (Node1,Node2)
             self.v1,self.v2=0,0                        # pressure derivate on y direction
+            self.ndof=2
         
         if (self.element_type=="Quad"):
             self.bd_value1=0                           # boundary condition value1
@@ -121,8 +126,165 @@ class BEM_element(object):
             self.Q3=0                                  # left flux on the third node
             self.u1,self.u2,self.u3=0,0,0              # pressure derivative on x direction (Node1,Node2,Node3)
             self.v1,self.v2,self.v3=0,0,0              # pressure derivate on y direction
+            self.ndof=3
             
-            
+    
+    def get_bdvals(self):
+        #Get the boudary condtions values into array
+        bd_vals=[]
+        if (self.element_type == "Const"):
+            bd_vals=np.array([self.bd_value1])
+        elif (self.element_type == "Linear"):
+            bd_vals = np.array([self.bd_value1, self.bd_value2])
+        else:
+            bd_vals = np.array([self.bd_value1, self.bd_value2,self.bd_value3])
+        return bd_vals
+
+    def set_PQ(self,P,Q):
+        #set the vector P,Q and gradient to internal storage
+        if (self.element_type == "Const"):
+            self.P1=P[0]
+            self.Q1=Q[0]
+        if (self.element_type == "Linear"):
+            self.P1=P[0]
+            self.P2=P[1]
+            self.Q1=Q[0]
+            self.Q2=Q[1]
+        if(self.element_type == "Quad"):
+            self.P1 = P[0]
+            self.P2 = P[1]
+            self.P3 = P[2]
+            self.Q1 = Q[0]
+            self.Q2 = Q[1]
+            self.Q3 = Q[2]
+
+    def get_PQ(self):
+        #get the vector P,Q to internal storage
+        P=[]
+        Q=[]
+        if (self.element_type == "Const"):
+            P.append(self.P1)
+            Q.append(self.Q1)
+        if (self.element_type == "Linear"):
+            P.append(self.P1) 
+            P.append(self.P2) 
+            Q.append(self.Q1) 
+            Q.append(self.Q2) 
+        if(self.element_type == "Quad"):
+            P.append(self.P1)
+            P.append(self.P2)
+            P.append(self.P3)
+            Q.append(self.Q1)
+            Q.append(self.Q2)
+            Q.append(self.Q3)
+        return P,Q        
+
+    def get_P(self):
+        P = []
+        if (self.element_type == "Const" or self.element_type == "Linear" or self.element_type == "Quad"):
+            P.append(self.P1)
+        if (self.element_type == "Linear" or self.element_type == "Quad"):
+            P.append(self.P2)
+        if(self.element_type == "Quad"):
+            P.append(self.P3)
+        return P
+    
+    def get_Q(self):
+        Q = []
+        if (self.element_type == "Const" or self.element_type == "Linear" or self.element_type == "Quad"):
+            Q.append(self.Q1)
+        if (self.element_type == "Linear" or self.element_type == "Quad"):
+            Q.append(self.Q2)
+        if(self.element_type == "Quad"):
+            Q.append(self.Q3)
+        return Q
+
+    def eval_P(self,Pts):
+        #calculate the p on a specific element using shape function interpolation
+        phi = self.get_ShapeFunc(Pts)
+        P,Q=self.get_PQ()
+
+        p = 0.0
+        for i in range(self.ndof):
+            p += phi[i] * P[i]
+
+        return p
+
+    def eval_UV(self):
+        #Set up flux gradient in x and y direction
+        #P,Q must be completed first by set_PQ
+        
+        #Special Case of element Flux=0
+        dist = 0.000001
+        unit_vector = np.array((self.tx, self.ty))
+        
+        if (self.element_type == "Const"):
+                if(self.Q1 == 0):
+                    self.u1 = 0
+                    self.v1 = 0
+                else:
+                    self.u1 = self.Q1 * self.nx
+                    self.v1 = self.Q1 * self.ny
+        if (self.element_type == "Linear" or self.element_type == "Quad"):
+                if(self.Q1 == 0):
+                    Pts = np.array((self.xa,self.ya))
+                    Pts_diff = Pts + dist * unit_vector
+                    Qt = (self.eval_P(Pts_diff) - self.eval_P(Pts))/dist
+                    self.u1 = Qt*self.tx
+                    self.v1 = Qt*self.ty
+                else:
+                    self.u1 = self.Q1 * self.nx
+                    self.v1 = self.Q1 * self.ny
+                if(self.Q2 == 0 and self.element_type == "Linear"):
+                    Pts = np.array((self.xb, self.yb))
+                    Pts_diff = Pts - dist * unit_vector
+                    Qt = (self.eval_P(Pts)-self.eval_P(Pts_diff))/dist
+                    self.u2 = Qt * self.tx
+                    self.v2 = Qt * self.ty
+                else:
+                    self.u2 = self.Q2 * self.nx
+                    self.v2 = self.Q2 * self.ny
+        if (self.element_type == "Quad"):
+                if(self.Q2 == 0):
+                    Pts = np.array((self.xc, self.yc))
+                    Pts_diff = Pts + dist * unit_vector
+                    Qt = (self.eval_P(Pts_diff) - self.eval_P(Pts)) / dist
+                    self.u2 = Qt * self.tx
+                    self.v2 = Qt * self.ty
+                else:
+                    self.u2 = self.Q2 * self.nx
+                    self.v2 = self.Q2 * self.ny
+                if(self.Q3 == 0):
+                    Pts = np.array((self.xb, self.yb))
+                    Pts_diff = Pts - dist * unit_vector
+                    Qt = (self.eval_P(Pts) - self.eval_P(Pts_diff)) / dist
+                    self.u3 = Qt * self.tx
+                    self.v3 = Qt * self.ty
+                else:
+                    self.u3 = self.Q3 * self.nx
+                    self.v3 = self.Q3 * self.ny
+                
+
+    def get_U(self):
+        U=[]
+        if (self.element_type == "Const" or self.element_type == "Linear" or self.element_type == "Quad"):
+            U.append(self.u1)    
+        if (self.element_type == "Linear" or self.element_type == "Quad"):
+            U.append(self.u2)
+        if(self.element_type == "Quad"):
+            U.append(self.u3)
+        return U
+    
+    def get_V(self):
+        V = []
+        if (self.element_type == "Const" or self.element_type == "Linear" or self.element_type == "Quad"):
+            V.append(self.v1)
+        if (self.element_type == "Linear" or self.element_type == "Quad"):
+            V.append(self.v2)
+        if(self.element_type == "Quad"):
+            V.append(self.v3)
+        return V
+
     def set_BC(self,bd_Indicator,bd_value,Robin_a=1,mode=0):
         #set up boundary condition for a element
         #mode-0 constant value along a element
@@ -208,7 +370,10 @@ class BEM_element(object):
             self.Q2=0                                 
             self.Q3=0                                  
             self.u1,self.u2,self.u3=0,0,0           
-            self.v1,self.v2,self.v3=0,0,0        
+            self.v1,self.v2,self.v3=0,0,0    
+
+
+
 
 
 

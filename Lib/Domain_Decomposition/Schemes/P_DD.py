@@ -65,6 +65,8 @@ def PDD(obj,alpha,TOL,opt):
         P_old_old=obj.new_var()#q^k-1 for current side
         Q_cur_old=obj.new_var()#h^k-1 for current side
         Q_con_old=obj.new_var()#h^k-1 for connect side
+        AB_mat = []  # BEM Matrix for each domain
+
 
         MaxIter=50
         for it in range(MaxIter):
@@ -108,7 +110,7 @@ def PDD(obj,alpha,TOL,opt):
                     P_new=P_old-alpha*(Q_current+Q_connect)
                     if(debug2): print('p_new',P_new,'p_old',P_old)
                     
-                    #Update new Neumann BC into system
+                    #Update new Dirichlet into system
                     bc_Dirichlet=[(bdID,P_new)]
                     obj.BEMobjs[i].set_BoundaryCondition(DirichletBC=bc_Dirichlet,update=1,mode=1)
                     
@@ -128,8 +130,10 @@ def PDD(obj,alpha,TOL,opt):
             
             #Step2. Update the solution for all fractures
             for i in range(obj.NumObj):#For each subdomain
-                obj.BEMobjs[i].DFN=0
-                obj.BEMobjs[i].Solve()
+                if(it == 0):  # Store the intial BEM Matrix
+                    AB_mat.append(obj.BEMobjs[i].Solve())
+                else:  # Update solution by only update the boundary condition, Fast
+                    AB_mat[i] = obj.BEMobjs[i].Solve(DDM=1, AB=[AB_mat[i][0], AB_mat[i][2]])
             
             if(it>5 and error_final<TOL):
                 print('Converged at',it,'Steps! TOL=',TOL)

@@ -20,9 +20,9 @@
  -Constant_element.py       #Constant element module
  -Linear_element.py         #Linear element module
  -Quadratic_element.py      #Quadratic element module
+ -Constant_element_Trace.py #Constant element with internal trace module
+ -Quadratic_element_Trace.py#Quadratic element with internal trace module
  -ShapeFunc.py              #Shape function in kernel integration
-
--DFN.py                 #Discrete fracture network module
 '''
 
 import numpy as np
@@ -36,8 +36,9 @@ from .Elements.Quadratic_element import *
 from .Elements.Linear_element import *
 from .Elements.Constant_element import *
 
-#[Discrete Fracture Module]
-#from .DFN import *
+from .Elements.Constant_element_Trace import *
+from .Elements.Quadratic_element_Trace import *
+
 
 #[General Geometry Lib]
 from Lib.Tools.Geometry import *
@@ -62,7 +63,16 @@ class BEM2D:
         Pts_t     -- Internal trace end node for abritary intersection 
                      e.g. Trace_vert=[((0.25, 0.5), (1.25, 0.5)),((0.25, 1.2), (1.25, 1.2))]
         
+        Ne_edge     -- Number of element on all edges
+        Ne_trace    -- Number of element on all traces
+        Nedof_edge  -- Number of DOF for edge elements (const=1 linear=2 quad=3)
+        Nedof_trace -- Number of DOF for trace elements
+        Ndof_edge   -- Total number of DOF for all edge elements
+        Ndof_trace  -- Total number of DOF for all trace elements
+        Ndof        -- Total number of DOF for all elements 
+
         [BEM Solver]
+        TraceOn         -- Enable the internal (geometry) trace
         BEs_edge        -- BEM element collection for boundary edge
         BEs_trace       -- BEM element collection for internal edge
         NumE_bd         -- the number of element on each boundary
@@ -87,10 +97,15 @@ class BEM2D:
         
         self.Ne_edge=0
         self.Ne_trace=0
+        self.Nedof_edge=0
+        self.Nedof_trace=0
+        self.Ndof_edge=0
+        self.Ndof_trace=0
+        self.Ndof=0
         self.h_edge=0
         self.h_trace=0
         
-        self.DFN=0
+        self.TraceOn=0
         
         self.Num_boundary=1
         self.Num_trace=1
@@ -193,12 +208,24 @@ class BEM2D:
             
             added_nodes=self.Append_Line(Node,Node_next,Ne_edge,self.BEs_edge,bd_marker=i,Type=Type)
             self.mesh_nodes.append(added_nodes)
-        self.Ne_edge=len(self.BEs_edge)
         
-        #Trace mesh-DFN
+        #Additional mesh info
+        self.Ne_edge=len(self.BEs_edge)
+        if(self.TypeE_edge=="Const"):
+            self.Ndof_edge = 1 * self.Ne_edge
+            self.Nedof_edge=1
+        elif(self.TypeE_edge == "Linear"):
+            self.Ndof_edge = 1 * self.Ne_edge
+            self.Nedof_edge=2
+        else:
+            self.Ndof_edge = 2*self.Ne_edge
+            self.Nedof_edge=3
+        
+        #Trace mesh
         self.TypeE_trace="Const"
-        if (He_trace!=None):
-            self.DFN=1 #
+        if (He_trace != None and len(Pts_t)!=0):
+            self.TraceOn=1 #
+            print('We have trace')
             for i in range(self.Num_trace):
                 Node,Node_next=self.Pts_t[i][0],self.Pts_t[i][1]
                 Ne_trace=int(np.ceil(calcDist(Node,Node_next)/self.h_trace))
@@ -209,11 +236,22 @@ class BEM2D:
                 self.BEs_trace.append(temp_trace)
                 
                 self.mesh_nodes.append(added_nodes)
-
+        #Additional mesh info
         self.Ne_trace=sum(self.NumE_t)
-        
+        self.Nedof_trace = 1
+        self.Ndof_trace=self.Ne_trace
+
+        #Total DOF
+        self.Ndof=self.Ndof_edge+self.Ndof_trace
+
+        if(self.Ndof_trace == 0):
+            self.TraceOn = 0
+        else:
+            self.TraceOn = 1
+
         #Plot Mesh
-        self.plot_Mesh()    
+        print('Total DOF=',self.Ndof)
+        self.plot_Mesh()
 
 
     ###########Boundary Conditions Module#################
@@ -234,8 +272,9 @@ class BEM2D:
         DirichletBC   -- Dirichlet boundary condition for a specifc edge, id=0
         NeumannBC     -- Neumann boundary condition for a specific edge, id=1
         RobinBC       -- Robin boundary condition for a specific edge, id=2
-        update        -- model selection, 0-set up new BCs 1-update old BCs
-        mode          -- mode0 constant BC assignmetn  mode1 node-wise BC assignment
+        update        -- model selection, 0-set up new BCs 1-update old BCs, normally used for DDM
+        mode          -- mode0 constant BC assignmetn  mode1 node-wise BC assignment, normally used for DDM
+        Robin_a       -- Robin coefficient
         
         Author:Bin Wang(binwang.0213@gmail.com)
         Date: July. 2017
@@ -270,7 +309,21 @@ class BEM2D:
                     if(bd_markerID>self.Num_boundary-1):#this is a trace
                         tID=elementID[j][0]
                         eID=elementID[j][1]
-                        self.BEs_trace[tID][eID].set_BC(BCid,BCs[i][1],Robin_a) # Neumann-1   Dirichlet-0 Robin-2
+                        #Special case of flux constrain for the first time BC setup
+                        if(BCid==1 and update==0): #Flux should be average flux strength per unit length                           
+                            average_Q = BCs[i][1] / len(self.BEs_trace[tID])
+                            length_trace = calcDist(self.Pts_t[tID][0], self.Pts_t[tID][1])
+                            average_Q = average_Q * length_trace
+                            # Neumann-1   Dirichlet-0 Robin-2
+                            self.BEs_trace[tID][eID].set_BC(BCid, average_Q, Robin_a)
+                        #General case with Dirichlet
+                        else:
+                            if(mode==0):
+                                self.BEs_trace[tID][eID].set_BC(BCid,BCs[i][1],Robin_a) # Neumann-1   Dirichlet-0 Robin-2
+                            elif(mode==1):
+
+                                bd_values=self.bd2element(self.TypeE_trace,eleid=j,node_values=BCs[i][1])
+                                self.BEs_trace[tID][eID].set_BC(BCid,bd_values,Robin_a,mode=1)
                     else:#this is a edge element
                         eID=elementID[j]
                         if(mode==0):
@@ -289,78 +342,83 @@ class BEM2D:
         #Check Meshing and B.C for different type of elements
         print("[Mesh] State")
         print("Number of boundary elements:%s" % (len(self.BEs_edge)+len(self.BEs_trace)))
-        print("Edge No.:%s" %(self.Num_boundary))
+        print("Edge Num.:%s" %(self.Num_boundary))
         print("# Neumann-1   Dirichlet-0")
-        print("Point\tX\tY\tType\tMarker\tBC_type\tBC_value")
-        for i, pl in enumerate(self.BEs_edge):#Quad
-            if(pl.element_type=="Const"):
-                print("(%s)%s\t%5.3f\t%.3f\t%.4s\t%d\t\t%d\t\t%.3f" % 
-                     (i+1,i+1,pl.xc,pl.yc,pl.element_type,pl.bd_marker,pl.bd_Indicator,pl.bd_value1))
-            if(pl.element_type=="Linear"):
-                print("(%s)%s\t%5.3f\t%.3f\t%.4s\t%d\t%d\t%.3f" % 
-                     (i+1,i+1,pl.xa,pl.ya,pl.element_type,pl.bd_marker,pl.bd_Indicator,pl.bd_value1))
-                if(i==self.Ne_edge-1):
-                    print("(%s)%s\t%5.3f\t%.3f\t%.4s\t%d\t%d\t%.3f" % 
-                        (i+1,0+1,pl.xb,pl.yb,pl.element_type,pl.bd_marker,pl.bd_Indicator,pl.bd_value2))
-                else:
-                    print("(%s)%s\t%5.3f\t%.3f\t%.4s\t%d\t%d\t%.3f" %
-                        (i+1,i+2,pl.xb,pl.yb,pl.element_type,pl.bd_marker,pl.bd_Indicator,pl.bd_value2))
-            if(pl.element_type=="Quad"):
-                print("(%s)%s\t%5.3f\t%.3f\t%.4s\t%d\t%d\t%.3f" % 
-                     (i+1,2*i+1,pl.xa,pl.ya,pl.element_type,pl.bd_marker,pl.bd_Indicator,pl.bd_value1))
-                print("(%s)%s\t%5.3f\t%.3f\t%.4s\t%d\t%d\t%.3f" % 
-                     (i+1,2*i+2,pl.xc,pl.yc,pl.element_type,pl.bd_marker,pl.bd_Indicator,pl.bd_value2))
-                if(i==self.Ne_edge-1):
-                    print("(%s)%s\t%5.3f\t%.3f\t%.4s\t%d\t%d\t%.3f" % 
-                        (i+1,0+1,pl.xb,pl.yb,pl.element_type,pl.bd_marker,pl.bd_Indicator,pl.bd_value3))
-                else:
-                    print("(%s)%s\t%5.3f\t%.3f\t%.4s\t%d\t%d\t%.3f" % 
-                        (i+1,2*i+3,pl.xb,pl.yb,pl.element_type,pl.bd_marker,pl.bd_Indicator,pl.bd_value3))
-    
-        print("Trace No.:%s" %(self.Num_trace))
-        print("Point\tX\tY\tType\tMarker\tBC_type\tBC_value")
+        print("(E)Pts\tX\tY\tType\tMarker\t\tBC_type\t\tBC_value")
+        for i, pl in enumerate(self.BEs_edge):
+            eleid = i + 1
+            for j in range(self.Nedof_edge):
+                nodeid = self.getNodeId(i, j,'Edge') + 1
+                print("(%s)%s\t%5.3f\t%.3f\t%.4s\t%d\t\t%d\t\t%.3f" %
+                        (eleid, nodeid, pl.xc, pl.yc, pl.element_type, pl.bd_marker, pl.bd_Indicator, pl.bd_value1))
+
+        print("Trace Num.:%s" %(self.Num_trace))
+        eleid = 0
         for i in range(self.Num_trace):
+            print("--Trace ",i+1)
             for j, pl in enumerate(self.BEs_trace[i]):
-                index=j+i*len(self.BEs_trace[i])+1
-                #print("(%s)%s\t%5.3f\t\t%.3f\t\t%.4s\t\t%d" % (index,2*len(self.BEs_edge)+index,pl.xa,pl.ya,pl.element_type,pl.bd_marker))
-                print("(%s)%s\t%5.3f\t%.3f\t%.4s\t%d\t%d\t%.3f" % 
-                     (index,'Xc',pl.xc,pl.yc,pl.element_type,pl.bd_marker,pl.bd_Indicator,pl.bd_value1))
+                for k in range(self.Nedof_trace):
+                    global_eleid = eleid + self.Ne_edge + 1
+                    global_index = self.getNodeId(eleid, k,'Trace') + 1
+                    #print("(%s)%s\t%5.3f\t\t%.3f\t\t%.4s\t\t%d" % (index,2*len(self.BEs_edge)+index,pl.xa,pl.ya,pl.element_type,pl.bd_marker))
+                    print("(%s)%s\t%5.3f\t%.3f\t%.4s\t%d\t\t%d\t\t%.3f" % 
+                          (global_eleid, global_index, pl.xc, pl.yc, pl.element_type, pl.bd_marker, pl.bd_Indicator, pl.bd_value1))
+                
+                eleid = eleid + 1
+
 
 
     ###########Matrix Assemble and Solve Module#################
-    def Solve(self):
+    def Solve(self,DDM=0,AB=[]):
         """Build up and solve BEM matrix using collocation method
         
         #Reference: BEM Introduction Course-1991-P81
-        #DFN-Reference: A BEM solution of steady-state ﬂow problems in discrete fracture networks with minimization of core storage
+        #Trace-Reference: A BEM solution of steady-state ﬂow problems in discrete fracture networks with minimization of core storage
         
+        DDM--Domain Decomposion Solution, 1=DDM 0=general
+        AB--Input HG matrix for DDM
+
         Author:Bin Wang(binwang.0213@gmail.com)
         Date: July. 2017
         """
         debug=0
-        self.DFN=0
 
-        if (self.DFN==1):#DFN function ON
-            AAbb=build_matrix_DFN(self.BEs_edge,self.BEs_trace)
-            return AAbb
+        if (self.TraceOn==1):#Internal Trace ON
+            if(self.TypeE_edge == 'Const'):#Support any type of boundary conditions
+                Ab=build_matrix_const_Trace(self.BEs_edge,self.BEs_trace,self,DDM,AB)
+                X = np.linalg.solve(Ab[0], Ab[1])  # linear solution X
+                solution_allocate_const_Trace(self.BEs_edge, self.BEs_trace, X, self)
+                return Ab
+
+            if(self.TypeE_edge == 'Quad'): #Only support zero flux boundary conditions
+                Ab=build_matrix_quadratic_Trace(self.BEs_edge,self.BEs_trace,self)
+                X = np.linalg.solve(Ab[0], Ab[1])  # linear solution X
+                solution_allocate_quadratic_Trace(self.BEs_edge, self.BEs_trace, X, self)
+                return Ab
+
+        else:#Boundary Only Case
+            if (self.TypeE_edge=="Quad"): #2nd order element
+                Ab=build_matrix_quadratic(self.BEs_edge,DDM,AB) #matrix AB
+                X = np.linalg.solve(Ab[0], Ab[1])#linear solution X
+                solution_allocate_quadratic(self.BEs_edge,X,debug)#assign solution back to element class
+                return Ab
+            
+            if (self.TypeE_edge=="Linear"):#linear element
+                Ab = build_matrix_linear(self.BEs_edge, DDM, AB)  # matrix AB
+                X = np.linalg.solve(Ab[0], Ab[1])#linear solution X
+                solution_allocate_linear(self.BEs_edge,X,debug)#assign solution back to element class
+                return Ab
+            
+            if (self.TypeE_edge=="Const"):#const element
+                Ab = build_matrix_const(self.BEs_edge, DDM, AB)  # matrix AB
+                X = np.linalg.solve(Ab[0], Ab[1])#linear solution X
+                #print(X)
+                solution_allocate_constant(self.BEs_edge,X,debug)#assign solution back to element class
+                return Ab
+            
+            return Ab
         
-        if (self.TypeE_edge=="Quad"): #2nd order element
-            Ab=build_matrix_quadratic(self.BEs_edge) #matrix AB
-            X = np.linalg.solve(Ab[0], Ab[1])#linear solution X
-            solution_allocate_quadratic(self.BEs_edge,X,debug)#assign solution back to element class
-        
-        if (self.TypeE_edge=="Linear"):#linear element
-            Ab=build_matrix_linear(self.BEs_edge) #matrix AB
-            X = np.linalg.solve(Ab[0], Ab[1])#linear solution X
-            solution_allocate_linear(self.BEs_edge,X,debug)#assign solution back to element class
-        
-        if (self.TypeE_edge=="Const"):
-            Ab=build_matrix_const(self.BEs_edge) #matrix AB
-            X = np.linalg.solve(Ab[0], Ab[1])#linear solution X
-            #print(X)
-            solution_allocate_constant(self.BEs_edge,X,debug)#assign solution back to element class
-        
-        return Ab
+
     
     def get_Solution(self,Pts,bd_markerID=-1):
         """Get the solution variable(p,ux,uy) at any given Point(Pts)
@@ -378,9 +436,17 @@ class BEM2D:
         """
         Pts_location=self.point_on_element(Pts) #check point location
 
-        if (self.DFN==1):#DFN function ON
-            AAbb=build_matrix_DFN(self.BEs_edge,self.BEs_trace)
-            return AAbb
+        if (self.TraceOn==1):#DFN function ON
+            if(Pts_location == -1):  # Pts is a internal point
+                if(self.TypeE_edge == 'Const'):
+                    return Field_Solve_const_Trace(Pts[0], Pts[1], self.BEs_edge, self.BEs_trace)
+                else:
+                    return Field_Solve_quadratic_Trace(Pts[0], Pts[1], self.BEs_edge, self.BEs_trace)
+            elif(len(Pts_location) == 1):  # Pts is located on boundary element
+                if(self.TypeE_edge == 'Const'):
+                    return Field_Solve_const_Trace(Pts[0], Pts[1], self.BEs_edge, self.BEs_trace, elementID=Pts_location[0])
+                else:
+                    return Field_Solve_quadratic_Trace(Pts[0], Pts[1], self.BEs_edge, self.BEs_trace, elementID=Pts_location[0])
         
         if (self.TypeE_edge=="Quad"): #2nd order element
             if(Pts_location==-1): #Pts is a internal point
@@ -428,6 +494,50 @@ class BEM2D:
                     return Field_Solve_constant(Pts[0], Pts[1], self.BEs_edge,elementID=Pts_location[0])
                        #,Field_Solve_constant(Pts[0], Pts[1], self.BEs_edge,elementID=Pts_location[1])]
 
+    def print_solution(self):
+        """Check Meshing and B.C for different type of elements
+        
+        Author:Bin Wang(binwang.0213@gmail.com)
+        Date: May. 2018
+        """
+        #Check Meshing and B.C for different type of elements
+        print("[Mesh] State")
+        print("Number of boundary elements:%s" %
+              (len(self.BEs_edge) + len(self.BEs_trace)))
+        print("Edge Num.:%s" % (self.Num_boundary))
+        print("# Neumann-1   Dirichlet-0")
+        print("(E)Pts\tP\tQ\tU\tV")
+
+        mass_balance=0
+
+        for i, pl in enumerate(self.BEs_edge):
+            eleid = i + 1
+            P, Q = pl.get_PQ()
+            U,V =pl.get_U(),pl.get_V()
+            for j in range(self.Nedof_edge):
+                nodeid = self.getNodeId(i, j, 'Edge') + 1
+                print("(%s)%s\t%.2f\t%.2f\t%.2f\t%.2f" % (eleid, nodeid, P[j], Q[j],U[j],V[j]))
+                mass_balance = mass_balance + Q[j]*pl.length # Mass balance should be the unit strength
+        mass_e = mass_balance
+        
+        print('Unit Boundary Flux', mass_e)
+        print("Trace Num.:%s" % (self.Num_trace))
+        eleid = 0
+        for ti in range(self.Num_trace):
+            print("--Trace ", i + 1)
+            for i, pl in enumerate(self.BEs_trace[ti]):
+                P, Q = pl.get_PQ()
+                for j in range(self.Nedof_trace):
+                    global_eleid = eleid + self.Ne_edge + 1
+                    global_index = self.getNodeId(eleid, j, 'Trace') + 1
+                    #print("(%s)%s\t%5.3f\t\t%.3f\t\t%.4s\t\t%d" % (index,2*len(self.BEs_edge)+index,pl.xa,pl.ya,pl.element_type,pl.bd_marker))
+                    print("(%s)%s\t%.2f\t%.2f\t%.2f\t%.2f" %
+                          (global_eleid, global_index, P[j], Q[j], U[j], V[j]))
+                    mass_balance = mass_balance + Q[j]
+                eleid = eleid + 1
+        mass_t = mass_balance - mass_e
+        print('Unit Trace Flux', mass_t)
+        print('Mass Balance=', mass_balance,abs(mass_e/mass_t))
 
     ###########Post-processing Module#################
     def get_BDSolution(self,bd_markerID):
@@ -449,7 +559,13 @@ class BEM2D:
         elementID=self.bdmarker2element(bd_markerID)#find the element idx on this edge
 
         if (bd_markerID>self.Num_boundary-1):#this is a trace
-            print('Trace funciton is not added now!')
+            ti = elementID[0][0]
+            for ei, pl in enumerate(self.BEs_trace[ti]):
+                temp = pl.get_PQ()
+                p=p+temp[0]
+                q=q+temp[1]
+                u=u+pl.get_U()
+                v=v+pl.get_V()
         
         else:#this is a boundary edge
             for i in range(len(elementID)):#loop for all elements on this edge
@@ -505,9 +621,6 @@ class BEM2D:
         #plt.figure(figsize=(4, 4))
         plt.axes().set(xlim=[x_min-space, x_max+space],
                        ylim=[y_min-space, y_max+space],aspect='equal')
-        plt.axes().set_title('BEM Mesh')
-        plt.axes().set_xlabel('x(m)')
-        plt.axes().set_ylabel('y(m)')
 
         #Domain boundary
         #plt.plot(*np.asarray(self.Pts_e).T,lw=1,color='black')
@@ -516,22 +629,26 @@ class BEM2D:
         #Boundary elements
         plt.plot(np.append([BE.xa for BE in self.BEs_edge], self.BEs_edge[0].xa), 
              np.append([BE.ya for BE in self.BEs_edge], self.BEs_edge[0].ya), 
-             'bo-',markersize=5,label='Boundary Elements')
+             'bo-',markersize=5,label='Boundary Elements '+str(self.Ne_edge))
         
         if (self.BEs_edge[0].element_type=="Quad"):
             plt.scatter([BE.xc for BE in self.BEs_edge], [BE.yc for BE in self.BEs_edge], color='b', s=25)
         
         #Trace elements
-        if (self.DFN):
+        if (self.TraceOn):
             for i in range(self.Num_trace):
+                plt.plot([self.BEs_trace[i][0].xc, self.BEs_trace[i][0].xc],
+                             [self.BEs_trace[i][0].yc,self.BEs_trace[i][0].yc],
+                             'go-',  markersize=5, label='Trace Elements '+str(self.Ne_trace))
+                plt.plot([self.BEs_trace[i][0].xa, self.BEs_trace[i][0].xb],
+                             [self.BEs_trace[i][0].ya,self.BEs_trace[i][0].yb],
+                             'go-',  markersize=2)
                 for j in range(self.NumE_t[i]-1):
-                        if (i==0 and j==0):
                             plt.plot([self.BEs_trace[i][j].xa,self.BEs_trace[i][j+1].xb],
                                      [self.BEs_trace[i][j].ya,self.BEs_trace[i][j+1].yb], 
-                                     'go-',  markersize=5,label='Trace Elements')
-                        else:
-                            plt.plot([self.BEs_trace[i][j].xa,self.BEs_trace[i][j+1].xb],
-                                     [self.BEs_trace[i][j].ya,self.BEs_trace[i][j+1].yb], 
+                                     'go-', markersize=2)
+                            plt.plot([self.BEs_trace[i][j].xc,self.BEs_trace[i][j+1].xc],
+                                     [self.BEs_trace[i][j].yc,self.BEs_trace[i][j+1].yc], 
                                      'go-', markersize=5)
         
         if (Annotation):
@@ -552,9 +669,12 @@ class BEM2D:
 
         
         plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+        plt.title('BEM Mesh')
+        plt.xlabel('x(m)')
+        plt.ylabel('y(m)')
         plt.show()
 
-    def plot_Solution(self,v_range=(0,50),p_range=(50,100)):
+    def plot_Solution(self,v_range=(0,50),p_range=(50,100),resolution=50):
         """Plot pressure&velocity field and Preview the streamline
 
         Author:Bin Wang(binwang.0213@gmail.com)
@@ -567,7 +687,7 @@ class BEM2D:
         from matplotlib import path
         Polygon = path.Path(self.Pts_e)
         
-        N = 30                  # number of points in the x and y directions
+        N = resolution        # number of points in the x and y directions
         
         xmin,ymin=self.domain_min[0],self.domain_min[1]
         xmax,ymax=self.domain_max[0],self.domain_max[1]
@@ -593,16 +713,24 @@ class BEM2D:
                     p[i,j]=u[i,j]=v[i,j]= "nan"
             
         
-        fig, axes = plt.subplots(ncols=3,figsize=(12, 12))
+        fig, axes = plt.subplots(ncols=3,figsize=(15, 15))
         Vtotal= np.sqrt(u**2+v**2)
         
         from mpl_toolkits.axes_grid1 import make_axes_locatable
         
         for i, ax in enumerate(axes.flat):
             ax.set(xlim=[xmin-space, xmax+space],ylim=[ymin-space, ymax+space],aspect='equal')
+
+            #Background Mesh
             ax.plot(np.append([BE.xa for BE in self.BEs_edge], self.BEs_edge[0].xa), 
                          np.append([BE.ya for BE in self.BEs_edge], self.BEs_edge[0].ya), 
-                         'bo-',markersize=5,label='Boundary Elements')
+                         'k-')
+            for ti in range(self.Num_trace):
+                ax.plot(np.append([BE.xb for BE in self.BEs_trace[ti]], self.BEs_trace[ti][0].xa),
+                        np.append([BE.yb for BE in self.BEs_trace[ti]], self.BEs_trace[ti][0].ya),
+                        'k-')
+        
+
             if i==0:
                 ax.set_title(r'Velocity Field')
                 level = np.linspace(v_range[0], v_range[1], 15, endpoint=True)
@@ -615,7 +743,8 @@ class BEM2D:
                 ax.set_title(r'Pressure Field')
                 #im=ax.pcolormesh(X,Y,Vtotal,vmax=Vtotal_max)
                 extent=(xmin,xmax,ymin,ymax)
-                im=ax.imshow(p,vmin=p_range[0],vmax=p_range[1],extent=extent,origin='lower',interpolation='nearest',cmap=plt.cm.jet)
+                #im=ax.imshow(p,vmin=p_range[0],vmax=p_range[1],extent=extent,origin='lower',interpolation='nearest',cmap=plt.cm.jet)
+                im=ax.imshow(p,vmin=p_range[0],vmax=p_range[1],extent=extent,origin='lower',interpolation='bicubic',cmap=plt.cm.jet)
                 divider = make_axes_locatable(ax)
                 cax2=divider.append_axes("right", "10%", pad=0.15)
                 cbar2 = plt.colorbar(im, cax=cax2,format="%.2f")
@@ -633,7 +762,7 @@ class BEM2D:
 
         
         fig.tight_layout()
-        #plt.savefig('Field_Plot.png',dpi=300)
+        plt.savefig('Field_Plot.png',dpi=300)
         plt.show()      
         
         return p,u,v
@@ -644,37 +773,84 @@ class BEM2D:
         Author:Bin Wang(binwang.0213@gmail.com)
         Date: July. 2017
         """
-        
         Pts=EndPointOnPolygon(self.Pts_e,Nseg=10*len(self.Pts_e))
         Y=np.array([self.get_Solution(p) for p in Pts])
         
         X=[i for i in range(len(Y))]
         
-        p=Y[:,0]
-        u=Y[:,1]
-        v=Y[:,2]
-        
-        fig, axes = plt.subplots(nrows=3,figsize=(7, 7))
-        from mpl_toolkits.axes_grid1 import make_axes_locatable
-        for i, ax in enumerate(axes.flat):
-            if i==0:
-                ax.set_title(r'Pressure along Boundary')
-                im=ax.plot(X, p)
-                divider = make_axes_locatable(ax)
-            if i==1:
-                ax.set_title(r'Velocity(x) along boundary')
-                im=ax.plot(X, u)
-                divider = make_axes_locatable(ax)
-            if i==2:
-                ax.set_title(r'Velocity(y) along boundary')
-                im=ax.plot(X, v)
-                divider = make_axes_locatable(ax)
-        
-        fig.tight_layout()
-        plt.show()
+        self.plot_PUV_Pts(X, Y)
         return Y
 
-    ###########Additional Tools################
+    def plot_Solution_overline(self,Pts0,Pts1):
+        Pts = EndPointOnLine(Pts0, Pts1, Nseg=100, refinement="linspace")
+        Y = np.array([self.get_Solution(p) for p in Pts])
+        X = [calcDist(Pts[0],Pts1) for Pts1 in Pts]
+
+        self.plot_PUV_Pts(X,Y)
+        return X,Y
+
+    ###########Additional Tools###############
+    def plot_PUV_Pts(self,X,Y):
+        #General line plot for PUV see plot_Solution_overline
+        p = Y[:, 0]
+        u = Y[:, 1]
+        v = Y[:, 2]
+
+        fig, axes = plt.subplots(nrows=3, figsize=(7, 7))
+        from mpl_toolkits.axes_grid1 import make_axes_locatable
+        for i, ax in enumerate(axes.flat):
+            if i == 0:
+                ax.set_title(r'Pressure along Boundary')
+                im = ax.plot(X, p)
+                divider = make_axes_locatable(ax)
+            if i == 1:
+                ax.set_title(r'Velocity(x) along boundary')
+                im = ax.plot(X, u)
+                divider = make_axes_locatable(ax)
+            if i == 2:
+                ax.set_title(r'Velocity(y) along boundary')
+                im = ax.plot(X, v)
+                divider = make_axes_locatable(ax)
+
+        fig.tight_layout()
+        plt.show()
+
+    def getNodeId(self,eleid,local_id,EdgeorTrace='Edge'):
+        #DOF distribution [Edge,Trace,Well]
+        #[1,2,3] [3,4,5] [5,6,7]
+        #get the global node index based on the element id and local id
+
+        global_id=0
+
+        if(EdgeorTrace=='Edge'):  # Edge
+            #Special Case of Round end connect for linear and quad element
+            if(eleid == self.Ne_edge - 1 and local_id == self.Nedof_edge-1 and self.Nedof_edge>1): #This is the last node at the last element
+                global_id = 0
+                return global_id
+        
+            if (self.TypeE_edge == "Quad"):
+                global_id=2*eleid+local_id
+            elif (self.TypeE_edge == "Linear"):
+                global_id = eleid + local_id
+            else:
+                global_id = eleid
+
+        if(self.Nedof_edge>1):#Linear and Quad element
+            start_id=(self.Nedof_edge-1)*self.Ne_edge
+        else:#Const element
+            start_id = self.Ne_edge
+        if(EdgeorTrace == 'Trace'):  # Trace
+            if (self.TypeE_trace == "Quad"):
+                global_id = start_id + 2 * eleid + local_id
+            elif (self.TypeE_trace == "Linear"):
+                global_id = start_id + eleid + local_id
+            else:
+                global_id = start_id + eleid
+            
+        
+
+        return global_id
+
     def point_on_element(self,Pts):
         #check and determine the element which a point is located on edge or trace
         #Currently, only boundary edge support
@@ -701,7 +877,7 @@ class BEM2D:
             return element
         else: 
             return -1
-    
+
     def element2edge(self,idx_element):
         #find the edge index form a elemetn index
         #Currently only support for edge element

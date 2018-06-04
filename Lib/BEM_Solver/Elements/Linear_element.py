@@ -79,7 +79,11 @@ def GHCalc_linear(xi,yi,panelj):
 #Future plan-faster speed and no boundary layer effect
 
 ######################## Solver Module-Matrix assemble and field point solve ########################
-def build_matrix_linear(panels):
+def build_matrix_linear(panels, DDM=0, AB=[]):
+    
+    if(DDM == 1 and AB != 'none'):
+        return update_matrix_linear(panels, AB)
+    
     N=len(panels)
     #!!!!index from 1!!!!
     G=np.zeros((N+1, 2*N+1), dtype=float) #double node for flux term
@@ -223,8 +227,36 @@ def build_matrix_linear(panels):
     A=np.delete(A,0, axis=1)
     A=np.delete(A,0,axis=0)
     b=np.delete(b,0,axis=0) #axis=0 row axis=1 column
-    
-    return A,b
+    G = np.delete(G, 0, axis=1)
+    G = np.delete(G, 0, axis=0)
+
+    return A,b,G
+
+
+def update_matrix_linear(panels, AB=[]):
+
+    N = len(panels)
+
+    #Collecting prescribed BC values
+    debug = 0
+    A = AB[0]
+    G = AB[1]
+
+    FI=np.zeros(N, dtype=float) #Dirichelt boundary condition   Left=Right 
+    DFI=np.zeros(2*N, dtype=float) #Neumann boundary condition    Leff!=Right
+    for i in range(N):
+        DFI[2*i]=panels[i].bd_value1   #odd left
+        DFI[2*i+1]=panels[i].bd_value2     #even right
+
+    #Assemble vector b
+    for i in range(N):  # BE
+        FI[i] = 0
+        for j in range(2*N):  # BEs
+                FI[i] = FI[i] + G[i, j] * DFI[j]
+    b = FI
+
+    return A, b, G
+
 
 def solution_allocate_linear(panels,X,debug=0):
     N=len(panels)

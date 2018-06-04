@@ -275,7 +275,11 @@ def GHCalc_analytical(xi,yi,panelj):
 
 
 ######################## Solver Module-Matrix assemble and field point solve ########################
-def build_matrix_const(panels):
+def build_matrix_const(panels, DDM=0, AB=[]):
+
+    if(DDM == 1 and AB != 'none'):
+        return update_matrix_const(panels, AB)
+
     N=len(panels)
     G=np.empty((N, N), dtype=float)
     H=np.empty((N, N), dtype=float)
@@ -323,9 +327,26 @@ def build_matrix_const(panels):
         for j in range(N): #BEs
             b[i]=b[i]+G[i,j]*panels[j].bd_value1
 
+    return A, b, G  # ,G_origin,H_origin
 
-    return A,b#,G_origin,H_origin
 
+def update_matrix_const(panels, AB=[]):
+
+    N = len(panels)
+
+    #Collecting prescribed BC values
+    debug = 0
+    A = AB[0]
+    G = AB[1]
+
+    #Assemble vector b
+    b = np.empty(N, dtype=float)
+    for i in range(N):  # BE
+        b[i] = 0
+        for j in range(N):  # BEs
+            b[i] = b[i] + G[i, j] * panels[j].bd_value1
+    
+    return A, b, G
 
 def solution_allocate_constant(panels,X,debug):
     if(debug): print("[Solution Results]")

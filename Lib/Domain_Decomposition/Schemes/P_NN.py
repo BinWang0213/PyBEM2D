@@ -66,6 +66,8 @@ def PNN(obj,alpha,TOL,opt):
         Q_old_old=obj.new_var() #q^k-1 for current side
         P_cur_old=obj.new_var()#h^k-1 for current side
         P_con_old=obj.new_var()#h^k-1 for connect side
+        AB_mat = []  # BEM Matrix for each domain
+
 
         MaxIter=100
         for it in range(MaxIter):
@@ -131,9 +133,10 @@ def PNN(obj,alpha,TOL,opt):
             
             #Step2. Update the solution for all fractures
             for i in range(obj.NumObj):#For each subdomain
-                obj.BEMobjs[i].DFN=0
-                #obj.BEMobjs[i].print_debug()
-                obj.BEMobjs[i].Solve()
+                if(it == 0):  # Store the intial BEM Matrix
+                    AB_mat.append(obj.BEMobjs[i].Solve())
+                else:  # Update solution by only update the boundary condition, Fast
+                    AB_mat[i] = obj.BEMobjs[i].Solve(DDM=1, AB=[AB_mat[i][0], AB_mat[i][2]])
             
             if(it>5 and error_final<TOL):
                 print('Converged at',it,'Steps! TOL=',TOL)
