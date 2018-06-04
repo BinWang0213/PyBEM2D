@@ -14,6 +14,7 @@ Currently available features include:
 * Potential problem
 * Classic point collocation method for BEM discretization
 * Support for constant,linear and quadratic element types
+* Support internal sources (traces)
 * Corner treatment with double node algorihtm [Brebbia, 1991]
 * Near singular integration with adaptive element subdivision algorithm [Gao et al. 2014]
 * Multi-domain problem and parallel computing with domain decomposition method [Wang et al, 2018]
