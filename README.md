@@ -12,11 +12,11 @@ Yin Feng, Department of Petroleum Engineering, Univeristy of Louisiana at Lafaye
 
 Currently available features include:
 * Easy-to-use python interface for BEM meshing and post-processing
-* Currently Potential problem
-* Classic point collocation method for BEM discretization
+* Anistropic Potential problem
+* Point collocation method for BEM discretization
 * Support for constant,linear and quadratic element types
-* Support for discontinous element to treat corner issues
-* Support internal sources (traces)
+* Support for discontinous element to treat corner and boundary conditions issue
+* Support internal point and line sources (traces)
 * Near singular, singular integration is calculated by exact integration
 
 Special feature:
