@@ -12,13 +12,14 @@ Yin Feng, Department of Petroleum Engineering, Univeristy of Louisiana at Lafaye
 
 Currently available features include:
 * Easy-to-use python interface for BEM meshing and post-processing
-* Potential problem
+* Currently Potential problem
 * Classic point collocation method for BEM discretization
 * Support for constant,linear and quadratic element types
+* Support for discontinous element to treat corner issues
 * Support internal sources (traces)
-* Corner treatment with double node algorihtm [Brebbia, 1991]
-* Near singular integration with adaptive element subdivision algorithm [Gao et al. 2014]
-* Multi-domain problem and parallel computing with domain decomposition method [Wang et al, 2018]
+* Near singular, singular integration is calculated by exact integration
+Special feature:
+* Multi-domain problem is solved by parallel domain decomposition method [Wang et al, 2018]
 
 `PyBEM2D` is currently support for `64-bit` `Windows` and `Linux` platforms, several `Jupyter-Notebook` examples are provided 
 
