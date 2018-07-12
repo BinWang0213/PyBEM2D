@@ -18,6 +18,7 @@ Currently available features include:
 * Support for discontinous element to treat corner issues
 * Support internal sources (traces)
 * Near singular, singular integration is calculated by exact integration
+
 Special feature:
 * Multi-domain problem is solved by parallel domain decomposition method [Wang et al, 2018]
 
