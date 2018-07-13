@@ -238,8 +238,6 @@ class BEM2D:
         if(k_det<0):
             print("Incorrect K tensor, k11*k22-k12^2 must >0!!")
             assert k_det>=0
-        if(k_tensor[1]>0):
-            print("[Warnning] Real Ansitropic case is not officaly supported now!")
 
         #Fluid flow problem
         self.k_coeff = miu / h / np.sqrt(k_det) / 2 / np.pi
