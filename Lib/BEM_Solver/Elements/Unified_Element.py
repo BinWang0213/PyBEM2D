@@ -20,7 +20,6 @@ import time
 from Lib.Tools.Geometry import cosspace,Point2Segment,GaussLib,Global2Iso,Subdivision,point_in_panel
 
 from .Exact_Integration import Analytical_Intergration_cython
-from .Analytical_Integration import Analytical_Intergration_python
 
 ######################## Solver Module-Matrix assemble and field point solve ########################
 def build_matrix(panels, mesh,DDM=0, AB=[]):
