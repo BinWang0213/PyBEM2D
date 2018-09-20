@@ -67,9 +67,12 @@ PUV=BEM_Case1.plot_Solution(v_range=(-150,250),p_range=(30,50),resolution=30)
 
 If you make use of `PyBEM2D` please reference appropriately. The algorithmic developments behind `PyBEM2D` have been the subject of a number of publications, beginning with my graduate research at the University of Louisiana at Lafayette:
 
-`[1]` - Wang, B., Feng, Y., Du, J., et al. (2017) An Embedded Grid-Free Approach for Near Wellbore Streamline Simulation. doi:10.2118/SPE-182614-MS
+`[1]` -B. Wang, Y. Feng, S. Pieraccini, S. Scialò, and C. Fidelibus (2018), Iterative coupling of boundary element method with domain decomposition, IJNME. doi: https://doi.org/10.1002/nme.5943
+
+`[2]` - Wang, B., Feng, Y., Du, J., et al. (2017) An Embedded Grid-Free Approach for Near Wellbore Streamline Simulation. doi:10.2118/SPE-182614-MS
 https://www.researchgate.net/publication/313665682_An_Embedded_Grid-Free_Approach_for_Near_Wellbore_Streamline_Simulation
-`[2]` -B. Wang, Y. Feng, S. Pieraccini, S. Scialò, and C. Fidelibus (2018), Iterative coupling of boundary element method with domain decomposition, IJNME. doi: https://doi.org/10.1002/nme.5943
+
+
 
 # License
 
