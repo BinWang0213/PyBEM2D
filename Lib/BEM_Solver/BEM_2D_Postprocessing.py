@@ -171,7 +171,7 @@ class BEM_2DPostprocess:
         return p,q,u,v
     
     ###########Visulation Module################
-    def plot_Solution(self,v_range=None,p_range=None,resolution=20):
+    def plot_Solution(self,v_range=None,p_range=None,resolution=20,exact_sol=None):
         """Plot pressure&velocity field and Preview the streamline
            v_range=(0,300),p_range=(50,100),resolution=20
 
@@ -194,6 +194,8 @@ class BEM_2DPostprocess:
         v = np.empty(N, dtype=float)
         for i in range(N):
                 puv=self.BEMobj.get_Solution(Pts[i])
+                if(exact_sol is not None): #if we plot exact solution
+                    puv=exact_sol(Pts[i])
                 p[i],u[i],v[i]=puv[0],puv[1],puv[2]    
         Vtotal = np.sqrt(u**2 + v**2)
         #Resampling data to regular grid
