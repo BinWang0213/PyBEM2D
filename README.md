@@ -24,7 +24,7 @@ Special feature:
 
 `PyBEM2D` is currently support for `64-bit` `Windows` and `Linux` platforms, several `Jupyter-Notebook` examples are provided.
 
-`Anaconda 5.3` (https://www.anaconda.com/download/) is required. If code is not working, please run `python setup.py build_ext -i clean` @ "PyBEM2D\Lib\BEM_Solver\Elements\Cython" in terminal to compile the cython library for exact integration. The library works on both Windows and Linux.
+`Anaconda 5.3` (https://www.anaconda.com/download/) is required. If code is not working, please run `python setup.py build_ext -i clean` @ "PyBEM2D\BEM_Solver\Elements\" in terminal to compile the cython library for exact integration. The library works on both Windows and Linux.
 
 
 # Solving A potential porblem in PyBEM2D
@@ -35,10 +35,9 @@ Special feature:
 
 After downloading and unzipping the current <a href="https://github.com/BinWang0213/PyBEM2D/archive/master.zip">repository</a>, navigate to the library directory and run a simple example contained in `Example/LSU_Traces.ipynb`:
 ```python
-from Lib.BEM_Solver.BEM_2D import *
-from Lib.Domain_Decomposition.Coupling_Main import *
+import PyBEM2D as BEMpy
 
-BEM_Case1=BEM2D()
+BEM_Case1=BEMpy.BEM2D()
 
 #1.Build Mesh
 Boundary_vert=[(0.0, 0.0), (1.0, 0.0), (1.0, 0.75), (0.0, 0.75)] #Anti-clock wise for internal domain
