@@ -1,0 +1,3 @@
+dir
+ipython notebook 
+pause

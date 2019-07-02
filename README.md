@@ -79,7 +79,3 @@ https://www.researchgate.net/publication/313665682_An_Embedded_Grid-Free_Approac
 # License
 
 This code is released under the terms of the BSD license, and thus free for commercial and research use. Feel free to use the code into your own project with a PROPER REFERENCE.  
-
-
-
-

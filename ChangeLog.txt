@@ -1,0 +1,38 @@
+PyBEM2D Changelog
+
+Build 20190702
+1. Point source supported
+2. Code structure is simplified again
+3. Few examples are added
+4. Due to point source, the code now only support Orthotropic instead of Anisotropic.
+
+Build 20180712
+1. Discontinous constant,linear and quadratic element is supported
+2. Exact analytical integrations for all elements is added
+3. Anisotropic properties is supported
+3. Key calculations are acclerated by Cython (40X improvements)
+4. Thanks to exact integration. The Code structure is simplifed and updated. 
+	-BEM_2D is splitted into BEM_2D,BEM_2D_Mesh and BEM_2D_PostProcess
+	-Matrix assembler for different elements is unified.
+5. The visulization tools are improved and updated.
+6. Serveral examples are added and verified with FEM Solution.
+
+Build 20180603
+
+1. Move all jupyter notebook examples into Example folder
+2. Added more functionalities for BEM_element class which now can "set" and "get" solution values (P,U,V) for each element
+4. Improved DDM solution efficiency by only update the load vector only without reassembling
+3. Support Internal Geometry(Trace) now
+4. The visulization part is improved, edge label will be shown for prescribing the boundary conditions
+
+Build 20170903
+
+1. First release of PyBEM2D
+2. Feature
+	-Easy-to-use python interface for BEM meshing and post-processing
+	-Potential problem
+	-Classic point collocation method for BEM discretization
+	-Support for constant,linear and quadratic element types
+	-Corner treatment with double node algorihtm [Brebbia, 1991]
+	-Near singular integration with adaptive element subdivision algorithm [Gao et al. 2014]
+	-Multi-domain problem and parallel computing with domain decomposition method [Wang et al, 2018]
