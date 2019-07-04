@@ -37,7 +37,6 @@ from .Schemes.P_RR import PRR
 from .Schemes.P_NN import PNN
 from .Schemes.P_DD import PDD
 from .Schemes.S_DN import SDN
-from .Schemes.CP_RR import CPRR
 
 
 #####################################
@@ -49,7 +48,7 @@ from .Schemes.CP_RR import CPRR
 class DDM_Solver:
     """Class object for iterative solver"""
 
-    def __init__(self, BEMobj=[], Connection=[], Intersection=[]):
+    def __init__(self, BEMobj=[], Connection=[], Intersection=[],plot_mesh=1):
         """Init the multidomain problem by given the BEMobj and connection table
            Assume a non-conforming mesh are given
     
@@ -102,11 +101,11 @@ class DDM_Solver:
         #[Plot]
         self.error_abs=[]  #abs error at interface,np.sum(abs(Q_new-Q_old)+abs(P_current-P_connect))
         
-        self.plot_mesh()
+        if(plot_mesh): self.plot_mesh()
         
     
     ####Main fucntions####
-    def Solve_Iter(self,Method="CG",initial_guess=0.0,TOL=1e-5,alpha=0.1,opt=0):
+    def Solve_Iter(self,Method="CG",initial_guess=0.0,TOL=1e-5,max_iters=100,alpha=0.1,opt=0):
         """Solve a multi-domain problem using a specific method
            Reference: Section 3 in the reference paper
 
@@ -140,25 +139,21 @@ class DDM_Solver:
 
         #Parallel Neumann-Neumann method with dynamic relaxation paramters
         if(Method=="P-NN"):
-            PNN(self,alpha,TOL,opt)
+            PNN(self,alpha,TOL,max_iters,opt)
         #Parallel Dirichlet-Dirichlet method with dynamic relaxation paramters
         if(Method=='P-DD'):
-            if(self.TraceOn==1):
-                PDD_DFN(self, alpha, TOL, opt)
-            else:
-                PDD(self,alpha,TOL,opt)
+            PDD(self,alpha,TOL,max_iters,opt)
         #Sequential Dirichlet-Neumann method with dynamic relaxation paramters
         if(Method=='S-DN'):
-            SDN(self,alpha,TOL,opt)
+            print('[Warnning] This method is not applicable for new input format')
+            #SDN(self,alpha,TOL,opt)
         #Parallel Robin-Robin method with dynamic relaxation paramters
         if(Method=='P-RR'):
-            PRR(self,alpha,1.0,TOL,opt)
-        #Classic Parallel Robin-Robin method with dynamic relaxation paramters
-        if(Method=='CP-RR'):
-            CPRR(self,alpha,TOL,opt)
+            PRR(self,alpha,1.0,TOL,max_iters,opt)
         #Berrone's Conguate gradient method [not available now]
         if(Method=="CG"):
-            self.CG_loop(TOL)
+            assert 3==1, 'This method is not available'
+            #self.CG_loop(TOL)
 
     ####Plot functions####
     def plot_mesh(self):
@@ -179,8 +174,8 @@ class DDM_Solver:
 
         if(self.BEMobjs[0].TraceOn==1):
             self.TraceOn=1
-            #print('Plot Mesh only support non-DFN type!')
-            #return
+            print('Plot Mesh only support non-DFN type!')
+            return
 
         plt.figure(figsize=(6, 6))
         plt.axes().set_aspect('equal')
@@ -269,6 +264,7 @@ class DDM_Solver:
 
     ####Additional auxilary functions####
     def Interp_intersection(self,objID,ConnectObjID,Intersect,Vals=[],varID=0):
+        #! This function will not support in new version
         """Variables interpolation at the intersection between two domains with non-conforming mesh
            Namely, project variables of connected domain to current domain
            Reference: Eq. 11 and Figure 4 in the reference paper
@@ -299,7 +295,8 @@ class DDM_Solver:
         Date: July. 2017
         """
         #Variables interpolation between two interface with non-conforming mesh
-        
+        #assert 3==1,'Non-conforming mesh is disabled! Please update for discontinous element'
+
         bdID=self.BEMobjs[objID].Mesh.EndPoint2bdmarker(Intersect[0],Intersect[1])
         CurrentNodes=self.BEMobjs[objID].Mesh.mesh_nodes[bdID]
         bdID_connect=self.BEMobjs[ConnectObjID].Mesh.EndPoint2bdmarker(Intersect[0],Intersect[1])
@@ -320,6 +317,7 @@ class DDM_Solver:
         return Val_connect
     
     def new_var(self):
+        #! This function will not support in new version
         """Create a new variables with respect to iterative solver object
         Default Structure: Var[NumSubdomain][NumInterface]
 
@@ -337,6 +335,7 @@ class DDM_Solver:
         return var
     
     def get_ConnectID(self,objID,Intersect):
+        #! This function will not support in new version
         """Find the intersection id in a domain(objID) based on Intersection Coords(Intersect)
 
         Arguments

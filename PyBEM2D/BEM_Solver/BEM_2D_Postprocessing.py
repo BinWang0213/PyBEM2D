@@ -203,18 +203,20 @@ class BEM_2DPostprocess:
         if (bd_markerID>self.Mesh.Num_boundary-1):#this is a trace
             ti = elementID[0][0]#tracerID
             for ei, pl in enumerate(self.BEMobj.BEs_trace[ti]):
-                temp = pl.get_PQ()
-                p=p+temp[0]
-                q=q+temp[1]
-                u=u+pl.get_U()
-                v=v+pl.get_V()
+                pq = pl.get_PQ()
+                p+=pq[0]
+                q+=pq[1]
+                u+=pl.get_U()
+                v+=pl.get_V()
         
         else:#this is a boundary edge
             for i in range(len(elementID)):#loop for all elements on this edge
                 ele=self.BEMobj.BEs_edge[elementID[i]]
-                p,q=ele.get_PQ()
-                u=ele.get_U()
-                v=ele.get_V()
+                pq=ele.get_PQ()
+                p+=pq[0]
+                q+=pq[1]
+                u+=ele.get_U()
+                v+=ele.get_V()
 
         #darcy flow, velcoity=-dp/dx
         p=np.array(p)

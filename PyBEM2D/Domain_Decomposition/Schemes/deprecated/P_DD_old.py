@@ -23,10 +23,8 @@ import numpy as np
 #
 #######################################
 
-def PDD(obj,alpha,TOL,max_iter,opt):
+def PDDo(obj,alpha,TOL,opt):
         """Dirichlet-Dirichlet iterative loop
-           Boundary Conditions are updated by looping through intersections
-
            Reference: Section 3.1 in the reference paper
         ------------------------
         |  Current | Connected |
@@ -64,80 +62,64 @@ def PDD(obj,alpha,TOL,max_iter,opt):
         debug2=0
         
         #for optimal relxation parameters
-        NumInt=len(obj.Intersects)
-        P_old_old = [[] for i in range(NumInt)]  # q^k-1 for current side
-        Q_cur_old = [[] for i in range(NumInt)]  # h^k-1 for current side
-        Q_con_old = [[] for i in range(NumInt)]  # h^k-1 for connect side
+        P_old_old=obj.new_var()#q^k-1 for current side
+        Q_cur_old=obj.new_var()#h^k-1 for current side
+        Q_con_old=obj.new_var()#h^k-1 for connect side
         AB_mat = []  # BEM Matrix for each domain
 
 
-        MaxIter = max_iter
+        MaxIter=100
         for it in range(MaxIter):
             if(debug2): print('----Loop:',it+1)
             error_final=0.0
             error=[]
 
-            if(it>2 and opt==1):
-                alpha_opt=PDD_OPT(obj,P_old_old,Q_cur_old,Q_con_old,alpha)
-                alpha=alpha_opt
-                #print(alpha_opt)
+            if(it>2):
+                if(opt==1):
+                    alpha_opt=PDD_OPT(obj,P_old_old,Q_cur_old,Q_con_old,alpha)
+                    alpha=alpha_opt
+                    #print(alpha_opt)
             
             #Step1. Prepare and update BCs for all domains
-            for IntID in range(NumInt):#For each intersection
-                DomainID, DomainID_connect = obj.Intersects[IntID][0], obj.Intersects[IntID][1]
-                EdgeID, EdgeID_connect = obj.Intersects[IntID][2], obj.Intersects[IntID][3]
-                BDType=obj.BEMobjs[DomainID].Mesh.getBDType(EdgeID)
+            for i in range(obj.NumObj):#For each subdomain
+                Num_shared_edge=len(obj.Connect[i])
+                #CurrentBEM=obj.BEMobjs[i]
+                for j in range(Num_shared_edge):#For each connected edge in this domain
+                    ConnectObjID=obj.Connect[i][j][0]
+                    IntersectID=obj.Connect[i][j][1]
+                    Intersect=obj.Intersects[IntersectID]
+                    if(debug1): print('Subdomain:',i,'ConnectDomain:',ConnectObjID,'Intersection Coords:',Intersect)
+                    
+                    #Non-conforming mesh- Interpolating the current nodes on connected domain
+                    #Local bdID is determined using intersection coordinates
+                    bdID=obj.BEMobjs[i].Mesh.EndPoint2bdmarker(Intersect[0],Intersect[1])
+                    PQ=obj.BEMobjs[i].PostProcess.get_BDSolution(bdID)
 
-                if(debug1): 
-                    print('Intersection',IntID,'Domain(%s->%s)'%(DomainID,DomainID_connect),'BD id(%s->%s)'%(EdgeID,EdgeID_connect))
-
-                #Init iteration
-                if(it==0):
-                    EdgeDof = obj.BEMobjs[DomainID].Mesh.getBDDof(EdgeID)
-                    P_old=np.zeros(EdgeDof)
-                    P_new = P_old
-                    P_new_connect=P_old
-                    Q_current=P_old
-                    Q_connect=P_old
-
-                #Normal iterations
-                elif(it>0):
-                    PQ = obj.BEMobjs[DomainID].PostProcess.get_BDSolution(EdgeID)
-                    PQ_connect = obj.BEMobjs[DomainID_connect].PostProcess.get_BDSolution(EdgeID_connect)
-                    #print('Orig',PQ_connect[0],PQ_connect[1])
-                    #print('New',np.flip(PQ_connect[0]),np.flip(PQ_connect[1]))
-                    #PQ_connect=[np.flip(PQ_connect[0]),np.flip(PQ_connect[1])]
-
-                    P_old=PQ[0]
-                    Q_current = PQ[1]                    
-                    if(BDType=='Edge'):  Q_connect=np.flip(PQ_connect[1]) #the dof on the other side is reversed
-                    else: Q_connect = PQ_connect[1]
+                    if(it==0):
+                        P_old=np.zeros(len(obj.BEMobjs[i].Mesh.mesh_nodes[bdID])) #initial guess zero vector
+                        if(obj.BEMobjs[ConnectObjID].TypeE_edge=="Const"):
+                            P_old=np.zeros(len(obj.BEMobjs[i].Mesh.mesh_nodes[bdID])-1) #Const element number = nodes number -1
+                    if(it>0):
+                        P_old=PQ[0]
+                    Q_current=PQ[1]
+                    
+                    Q_connect=obj.Interp_intersection(i,ConnectObjID,Intersect,varID=1)#(Current,Connect,Intersect)
                     if(debug2): print('Q_Current',Q_current,'Q_Connect',Q_connect)
-
+                    
                     #print(it+1,'alpha',alpha)
                     P_new=P_old-alpha*(Q_current+Q_connect)
                     if(debug2): print('p_new',P_new,'p_old',P_old)
-
-                    if(BDType=='Edge'): P_new_connect=np.flip(P_new)
-                    else: P_new_connect=P_new
-                    if(debug2): print('p_new_connect',P_new_connect,'p_old',P_old)
-
-                    if max(abs(P_new)) > 0:
-                        error.append(max(abs(P_new - P_old)) / max(abs(P_new)))
-                    else:
-                        error.append(1)
-                        #print(abs(Q_new-Q_old),abs(Q_new))
-                
-                #Update new Dirichlet into system
-                bc_Dirichlet = [(EdgeID, P_new)]
-                obj.BEMobjs[DomainID].set_BoundaryCondition(DirichletBC=bc_Dirichlet,update=1,mode=1,debug=0)
-                bc_Dirichlet = [(EdgeID_connect, P_new_connect)]
-                obj.BEMobjs[DomainID_connect].set_BoundaryCondition(DirichletBC=bc_Dirichlet,update=1,mode=1,debug=0)
-                
-                #Save last time iteration info
-                P_old_old[IntID] = P_old  #q_k-1 for current side
-                Q_cur_old[IntID] = Q_current  # h_k-1 for current side
-                Q_con_old[IntID] = Q_connect  # h_k-1 for current side
+                    
+                    #Update new Dirichlet into system
+                    bc_Dirichlet=[(bdID,P_new)]
+                    obj.BEMobjs[i].set_BoundaryCondition(DirichletBC=bc_Dirichlet,update=1,mode=1,debug=0)
+                    
+                    if(it>0): error.append(max(abs(P_new-P_old))/max(abs(P_new)))
+                    #print(abs(Q_new-Q_old),abs(Q_new))
+                    
+                    P_old_old[i][j]=P_old  #q_k-1 for current side
+                    Q_cur_old[i][j]=Q_current#h_k-1 for current side
+                    Q_con_old[i][j]=Q_connect#h_k-1 for current side
                     
             
             #Collect error for plot convergence
@@ -168,38 +150,37 @@ def PDD_OPT(obj, P_old_old,Q_cur_old,Q_con_old,alpha_old):
         nom=0.0
         denom=0.0
 
-        NumInt = len(obj.Intersects)
-        for IntID in range(NumInt):  # For each subdomain
-            DomainID, DomainID_connect = obj.Intersects[IntID][0], obj.Intersects[IntID][1]
-            EdgeID, EdgeID_connect = obj.Intersects[IntID][2], obj.Intersects[IntID][3]
-            BDType=obj.BEMobjs[DomainID].Mesh.getBDType(EdgeID)
+        for i in range(obj.NumObj):#For each subdomain
+                Num_shared_edge=len(obj.Connect[i])
+                #CurrentBEM=obj.BEMobjs[i]
+                for j in range(Num_shared_edge):#For each connected edge in this domain
+                    ConnectObjID=obj.Connect[i][j][0]
+                    IntersectID=obj.Connect[i][j][1]
+                    Intersect=obj.Intersects[IntersectID]
+                    
+                    #Non-conforming mesh- Interpolating the current nodes on connected domain
+                    #Local bdID is determined using intersection coordinates
+                    bdID=obj.BEMobjs[i].Mesh.EndPoint2bdmarker(Intersect[0],Intersect[1])
+                    PQ=obj.BEMobjs[i].PostProcess.get_BDSolution(bdID)
 
-            #Local bdID is determined using intersection coordinates
-            PQ = obj.BEMobjs[DomainID].PostProcess.get_BDSolution(EdgeID)
-            PQ_connect = obj.BEMobjs[DomainID_connect].PostProcess.get_BDSolution(EdgeID_connect)
-            #PQ_connect=[np.flip(PQ_connect[0]),np.flip(PQ_connect[1])]
+                    P_old=PQ[0]
+                    Q_current=PQ[1]
+                    
+                    Q_connect=obj.Interp_intersection(i,ConnectObjID,Intersect,varID=1)#(Current,Connect,Intersect)
 
-            P_old = PQ[0]
-            Q_current = PQ[1]
-            #Q_connect = PQ_connect[1]
-            #Q_connect=np.flip(PQ_connect[1])
-            if(BDType=='Edge'):  Q_connect=np.flip(PQ_connect[1]) #the dof on the other side is reversed
-            else: Q_connect = PQ_connect[1]
-
-            #for optimal relxation parameters
-            h_dif = P_old - P_old_old[IntID]
-            q_cur_dif = Q_current - Q_cur_old[IntID]
-            q_con_dif = Q_connect - Q_con_old[IntID]
-            q_ba=q_con_dif+q_cur_dif
-            #print("q_dif2",h_dif,q_ba)
-            #print('nom22',np.inner(h_dif,q_ba))
-            #print('dnom2',np.linalg.norm(-h_ba)**2)
-            nom+=np.inner(h_dif,q_ba)
-            denom+=np.linalg.norm(q_ba)**2
+                    #for optimal relxation parameters
+                    h_dif=P_old-P_old_old[i][j]
+                    q_cur_dif=Q_current-Q_cur_old[i][j]
+                    q_con_dif=Q_connect-Q_con_old[i][j]
+                    q_ba=q_con_dif+q_cur_dif
+                    #print("q_dif2",h_dif,q_ba)
+                    #print('nom22',np.inner(h_dif,q_ba))
+                    #print('dnom2',np.linalg.norm(-h_ba)**2)
+                    nom+=np.inner(h_dif,q_ba)
+                    denom+=np.linalg.norm(q_ba)**2
                     
                     
         alpha_opt=nom/denom
-        #alpha_opt = alpha_old*nom / denom
         if(alpha_opt<0.0):#Special case: P-DD may have negative alpha
             alpha_opt=alpha_old#Use the alpha from the last step
             print("Warning! Negative alpha!")

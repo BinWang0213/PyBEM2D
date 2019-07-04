@@ -607,6 +607,16 @@ class BEM_2DMesh:
 
         return Ndof
 
+    def getBDType(self,bd_markerID):
+        '''Get the type of a specific edge
+        '''
+        if(bd_markerID>=self.Num_boundary+self.Num_trace):
+            return 'Source'
+        elif(bd_markerID>=self.Num_boundary):
+            return 'Trace'
+        else:
+            return 'Edge'
+
     def getTraceID(self,bd_markerID):
         '''The the local trace id (0,1,2) from global bd id
         '''
@@ -705,15 +715,15 @@ class BEM_2DMesh:
         return np.array(index)
 
     def bd2element(self,element_type="Const",eleid=0,node_values=[]):
+        #! Assuming the discontinous element is used here
         #extract the node_values of a element from a sets of values along a edge
         #eleid is the local index, e.g 3 element on a edge, eleid=0,1,2
-
         if(element_type=="Const"):#[0] [1]
             return [node_values[eleid]]
         elif(element_type=="Linear"):#[0,1] [1,2]
-            return [node_values[eleid],node_values[eleid+1]]
+            return [node_values[eleid*2],node_values[eleid*2+1]]
         elif(element_type=="Quad"):#[0,1,2] [2,3,4]
-            return [node_values[eleid*2],node_values[eleid*2+1],node_values[eleid*2+2]]
+            return [node_values[eleid*3],node_values[eleid*3+1],node_values[eleid*3+2]]
 
     def getEdgeEleNodeCoords(self,eleid):
         #Get the node coordinates of a edge element

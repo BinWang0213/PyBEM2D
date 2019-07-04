@@ -24,7 +24,7 @@ Special feature:
 
 `PyBEM2D` is currently support for `64-bit` `Windows` and `Linux` platforms, several `Jupyter-Notebook` examples are provided.
 
-`Anaconda 5.3` (https://www.anaconda.com/download/) is required. If code is not working, please run `python setup.py build_ext -i clean` @ "PyBEM2D\BEM_Solver\Elements\" in terminal to compile the cython library for exact integration. The library works on both Windows and Linux.
+`Anaconda 5.3` (https://www.anaconda.com/download/) is required. If code is not working, please run `python setup.py build_ext -i clean` @ "PyBEM2D\Lib\BEM_Solver\Elements\Cython" in terminal to compile the cython library for exact integration. The library works on both Windows and Linux.
 
 
 # Solving A potential porblem in PyBEM2D

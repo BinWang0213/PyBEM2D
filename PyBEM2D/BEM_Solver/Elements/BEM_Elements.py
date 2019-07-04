@@ -191,7 +191,7 @@ class BEM_element(object):
         self.Q=Q
 
     def get_PQ(self):        
-        return np.array(self.P),np.array(self.Q)        
+        return self.P, self.Q     
 
     def get_P(self):
         return self.P
