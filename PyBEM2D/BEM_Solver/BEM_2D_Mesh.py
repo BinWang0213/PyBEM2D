@@ -24,7 +24,7 @@ from matplotlib import path
 from .Elements.BEM_Elements import BEM_element,Source_element
 
 #[General Geometry Lib]
-from ...PyBEM2D.Tools.Geometry import *
+from PyBEM2D.Tools.Geometry import *
 from .BEM_2D_Postprocessing import *
 
 
