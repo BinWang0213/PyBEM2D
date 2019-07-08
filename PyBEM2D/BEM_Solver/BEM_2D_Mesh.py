@@ -24,8 +24,8 @@ from matplotlib import path
 from .Elements.BEM_Elements import BEM_element,Source_element
 
 #[General Geometry Lib]
-from PyBEM2D.Tools.Geometry import *
-from PyBEM2D.BEM_Solver.BEM_2D_Postprocessing import *
+from ...PyBEM2D.Tools.Geometry import *
+from .BEM_2D_Postprocessing import *
 
 
 #Publication quality figure paramters
@@ -154,7 +154,7 @@ class BEM_2DMesh:
     def set_Mesh(self,Pts_e=[],Pts_t=[],Pts_s=[],
                       h_edge=0.1,h_trace=0.1,
                       Ne_edge=None,Ne_trace=None,
-                      Type='Quad',mode=0):
+                      Type='Quad',mode=0,geo_check=True):
         """Create BEM mesh based on either number of element or length of element
            Support for:
            1. Constant element,linear element and Quadratic element
@@ -169,6 +169,7 @@ class BEM_2DMesh:
         h_edge    -- Length of element for boundary edge [optional]
         h_trace   -- Length of element for trace [optional]
         mode      -- 0-round up connect 1-manully set up 
+        geo_check -- check if trace or edges are intersected
         
         Author:Bin Wang(binwang.0213@gmail.com)
         Date: July. 2017
@@ -176,7 +177,7 @@ class BEM_2DMesh:
         Updated: Bin Wang @ June. 2019, point source
         """
         #Check intersection segments
-        Pts_e, Pts_t = self.Split_ByIntersections(Pts_e, Pts_t)
+        if(geo_check): Pts_e, Pts_t = self.Split_ByIntersections(Pts_e, Pts_t)
         
         #Collect basic geometric info
         self.Pts_e=Pts_e
@@ -368,13 +369,13 @@ class BEM_2DMesh:
         plt.plot(*np.asarray(list(self.Pts_e)+[self.Pts_e[0]]).T,'k-',
                  lw=1.5, label="Domain Edges")
         #Trace boundary line
-        
-        for i in range(1, self.Num_trace):
+        for i in range(self.Num_trace):
+            trace_line=[list(p) for p in self.Pts_t[i]]
             if(i==0):
-                plt.plot(*np.asarray(list(self.Pts_t[0])).T, '-',color='gray',
+                plt.plot(*np.asarray(trace_line).T, '-',color='gray',
                      lw=1.5, label="Trace Edges")
             else:
-                plt.plot(*np.asarray(list(self.Pts_t[i])).T, 'k-',color='gray',
+                plt.plot(*np.asarray(trace_line).T, 'k-',color='gray',
                      lw=1.5)
 
         #Point source
@@ -433,7 +434,7 @@ class BEM_2DMesh:
                 index+=1
             
             for i in range(self.Num_source):
-                Node= np.array(self.Pts_s[i])*1.03
+                Node= np.asarray(self.Pts_s[i])*1.03
                 plt.text(*Node.T, "%s" % (index), fontsize=15)
                 index+=1
 
