@@ -17,7 +17,7 @@
 import numpy as np
 import math
 import time
-from PyBEM2D.Tools.Geometry import cosspace,Point2Segment,GaussLib,Global2Iso,Subdivision,point_in_panel
+from ...Tools.Geometry import cosspace,Point2Segment,GaussLib,Global2Iso,Subdivision,point_in_panel
 
 from .Exact_Integration import Analytical_Intergration_cython, Analytical_Intergration_source_cython
 
@@ -42,7 +42,7 @@ def build_matrix_all(panels, traces, sources, mesh,DDM=0, AB=[]):
     debug=0
 
     if(DDM == 1 and AB != 'none'):
-        return update_BCs_trace(panels,traces,mesh,AB)
+        return update_BCs_trace(panels,traces,sources,mesh,AB)
 
     #------------Assemble matrix---------
 
@@ -533,15 +533,18 @@ def Field_Solve_all(xi,yi,panels,traces,sources,mesh,elementID=-1):
     return P, -U, -V
 
 
-def update_BCs_trace(panels,traces,mesh,AB=[]):
+def update_BCs_trace(panels,traces,sources,mesh,AB=[]):
     
     debug = 0
     A = AB[0]
     B = AB[1]
+
     #Collecting prescribed BC values
     if(debug):
         print('Prescribed Value')
+    
     b = np.zeros(mesh.Ndof, dtype=float)
+    # Edge BC
     for i, pl in enumerate(panels):
         bdvals = pl.get_bdvals()
         for j in range(pl.ndof):
@@ -551,6 +554,7 @@ def update_BCs_trace(panels,traces,mesh,AB=[]):
                 print("Ele:%s Node:%s BC_Val:%s" %
                       (i + 1, nodeid + 1, b[nodeid]))
 
+    # Trace BC
     eleid = 0
     for ti in range(mesh.Num_trace):  # Trace
         for i, pl in enumerate(traces[ti]):  # Trace ele
@@ -562,6 +566,13 @@ def update_BCs_trace(panels,traces,mesh,AB=[]):
                     print("Ele:%s Node:%s BC_Val:%s" %
                           (eleid + 1 + mesh.Ne_edge, nodeid + 1, b[nodeid]))
             eleid = eleid + 1
+
+    # Source BC
+    for i, pl in enumerate(sources):
+        nodeid = mesh.getNodeId(i,0,'Source')
+        b[nodeid] = pl.get_bdvals()[0] #only 1 dof for source
+        if(debug): print("[Source] Ele:%s Node:%s BC_Val:%s" % (eleid+1+mesh.Ne_edge+i,nodeid+1,b[nodeid]))
+
 
     #Get the final RHS matrix
     b = np.dot(B, b)

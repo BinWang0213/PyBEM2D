@@ -17,7 +17,7 @@
 import numpy as np
 
 #[BEM Element type]
-from PyBEM2D.Tools.Geometry import calcDist, point_on_line
+from ...Tools.Geometry import calcDist, point_on_line
 
 
 ###############################

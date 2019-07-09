@@ -24,7 +24,7 @@ from matplotlib import path
 from .Elements.BEM_Elements import BEM_element,Source_element
 
 #[General Geometry Lib]
-from PyBEM2D.Tools.Geometry import *
+from ..Tools.Geometry import *
 from .BEM_2D_Postprocessing import *
 
 
@@ -443,6 +443,15 @@ class BEM_2DMesh:
         plt.title('BEM Mesh')
         plt.xlabel('x(m)')
         plt.ylabel('y(m)')
+
+        #extend the margin
+        plot_margin = space
+        x0, x1, y0, y1 = plt.axis()
+        plt.axis((x0 - plot_margin,
+          x1 + plot_margin,
+          y0 - plot_margin,
+          y1 + plot_margin))
+
         #plt.tight_layout()
         #Give some margin for velocity field
         if(img_fname is not None): 

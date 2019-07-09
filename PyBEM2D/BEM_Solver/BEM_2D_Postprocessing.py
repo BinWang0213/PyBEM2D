@@ -73,7 +73,7 @@ _params = {'font.family': 'sans-serif',
            }
 
 #[General Geometry Lib]
-from PyBEM2D.Tools.Geometry import *
+from ..Tools.Geometry import *
 
 ###############################
 #

@@ -30,7 +30,7 @@ import matplotlib
 matplotlib.rcParams.update({'font.size': 18}) #font
 
 #[General Geometry Module]
-from PyBEM2D.Tools.Geometry import point_on_line,Interp_Nonconforming
+from ..Tools.Geometry import point_on_line,Interp_Nonconforming
 
 #[DDM Schemes]
 from .Schemes.P_RR import PRR

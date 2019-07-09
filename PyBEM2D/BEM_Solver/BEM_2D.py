@@ -34,7 +34,7 @@ from .BEM_2D_Mesh import BEM_2DMesh
 from .BEM_2D_Postprocessing import BEM_2DPostprocess
 
 #[General Geometry Lib]
-from PyBEM2D.Tools.Geometry import *
+from ..Tools.Geometry import *
 
 ###############################
 #
