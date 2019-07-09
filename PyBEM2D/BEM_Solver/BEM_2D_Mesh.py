@@ -357,7 +357,7 @@ class BEM_2DMesh:
         x_min, x_max = self.domain_min[0], self.domain_max[0]
         y_min, y_max = self.domain_min[1], self.domain_max[1]
 
-        space = 0.15 * calcDist((x_min, y_min), (x_max, y_max))
+        space = 0.1 * calcDist((x_min, y_min), (x_max, y_max))
 
         plt.figure(figsize=(5, 4))
         #plt.axes().set(xlim=[x_min - space, x_max + space],
@@ -422,20 +422,20 @@ class BEM_2DMesh:
                     Node_next = self.Pts_e[0]  # round connect
                 else:
                     Node_next = self.Pts_e[i + 1]
-                rightmiddle = line_leftright(Node, Node_next, space * 0.5)[1]
-                plt.text(*rightmiddle.T, "%s" % (index), fontsize=15,color='k')
+                rightmiddle = line_leftright(Node, Node_next, space * 0.8)[1]
+                plt.text(*rightmiddle.T, "%s" % (index), fontsize=14)
                 index+=1
 
             for i in range(self.Num_trace):
                 Node, Node_next = self.Pts_t[i][0], self.Pts_t[i][1]
 
                 rightmiddle = line_leftright(Node, Node_next, space * 0.3)[1]
-                plt.text(*rightmiddle.T, "%s" % (index), fontsize=15)
+                plt.text(*rightmiddle.T, "%s" % (index), fontsize=14)
                 index+=1
             
             for i in range(self.Num_source):
                 Node= np.asarray(self.Pts_s[i])*1.03
-                plt.text(*Node.T, "%s" % (index), fontsize=15)
+                plt.text(*Node.T, "%s" % (index), fontsize=14)
                 index+=1
 
 
