@@ -86,7 +86,7 @@ class BEM2D:
         self.DirichletBC=[]
         self.RobinBC=[]
      
-    def set_Mesh(self, Pts_e=[], Pts_t=[], Pts_s=[], h_edge=0.1, h_trace=0.1, Ne_edge=None, Ne_trace=None, Type='Quad', mode=0):
+    def set_Mesh(self, Pts_e=[], Pts_t=[], Pts_s=[], h_edge=0.1, h_trace=0.1, Ne_edge=None, Ne_trace=None, Type='Quad', mode=0,geo_check=True):
         """Create BEM mesh based on either number of element or length of element
         
         Arguments
@@ -101,7 +101,7 @@ class BEM2D:
         Author:Bin Wang(binwang.0213@gmail.com)
         Date: July. 2017
         """
-        self.Mesh.set_Mesh(Pts_e,Pts_t,Pts_s,h_edge,h_trace,Ne_edge,Ne_trace,Type,mode)
+        self.Mesh.set_Mesh(Pts_e,Pts_t,Pts_s,h_edge,h_trace,Ne_edge,Ne_trace,Type,mode,geo_check)
 
         if(self.Mesh.Ndof_trace == 0):
             self.TraceOn = 0
