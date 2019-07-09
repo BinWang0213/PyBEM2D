@@ -160,7 +160,8 @@ def PRR(obj,alpha,robin_a,TOL,max_iter,opt):
             #Collect error for plot convergence
             if(it>0):
                 error_final=max(error)
-                print('%s\t%s\t\talpha:\t%s'%(it,error_final,alpha))
+                if(it%(MaxIter/50)==0):
+                    print('%s\t%s\t\talpha:\t%s'%(it,error_final,alpha))
                 obj.error_abs.append(error_final)
             
             #Step2. Update the solution for all fractures
