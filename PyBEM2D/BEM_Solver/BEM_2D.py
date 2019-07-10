@@ -228,8 +228,10 @@ class BEM2D:
             for i in range(len(elementID)):  # loop for all elements on this edge
                 self.BEs_edge[elementID[i]].set_bdvals(bcval)
 
-    def SetProps(self,k_tensor=[],k=1.0,miu=1,h=1):
+    def SetProps(self,k_tensor=[],k=1.0,miu=1.0,h=1.0):
         '''Set the potential properties
+
+        viscosity and fracture aperature is converted into equivalent permeability
 
         Author:Bin Wang(binwang.0213@gmail.com)
         Date: July. 2018
@@ -241,15 +243,16 @@ class BEM2D:
         
         #Anistropic K
         self.k = np.array(k_tensor)
-        self.k=self.k/miu # mu/k = 1/(k/u)
+        self.k=self.k/miu # mu/k/h = 1/(k*h/u)
 
-        k_det = k_tensor[0] * k_tensor[2] - k_tensor[1] * k_tensor[1]
+        k_det = self.k[0] * self.k[2] - self.k[1] * self.k[1]
         if(k_det<0): assert k_det>=0,'Incorrect K tensor, k11*k22-k12^2 must >0!!'        
-
+        
         #Fluid flow problem
-        self.miu = 1 # fluid viscosity in Darcy problem
-        self.k_coeff = miu / h / np.sqrt(k_det) / 2 / np.pi
-        self.h = h# plane thickness in Darcy problem
+        self.miu = miu # fluid viscosity in Darcy problem
+        self.h = h # plane thickness in Darcy problem
+        #self.k_coeff = self.miu / self.h / np.sqrt(k_det) / 2 / np.pi #* Normalized k_coeff by set miu and h as 1
+        self.k_coeff = 1.0 / 1.0 / np.sqrt(k_det) / 2 / np.pi #* Normalized k_coeff by set miu and h as 1\
 
     ###########Matrix Assemble and Solve Module#################
     def Solve(self,DDM=0,AB=[],debug=1):

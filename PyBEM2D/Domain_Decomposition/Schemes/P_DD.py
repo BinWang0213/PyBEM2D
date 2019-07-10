@@ -104,17 +104,25 @@ def PDD(obj,alpha,TOL,max_iter,opt):
                 elif(it>0):
                     PQ = obj.BEMobjs[DomainID].PostProcess.get_BDSolution(EdgeID)
                     PQ_connect = obj.BEMobjs[DomainID_connect].PostProcess.get_BDSolution(EdgeID_connect)
+                    h_current=obj.BEMobjs[DomainID].h
+                    h_connect=obj.BEMobjs[DomainID_connect].h
+
                     #print('Orig',PQ_connect[0],PQ_connect[1])
                     #print('New',np.flip(PQ_connect[0]),np.flip(PQ_connect[1]))
                     #PQ_connect=[np.flip(PQ_connect[0]),np.flip(PQ_connect[1])]
 
                     P_old=PQ[0]
-                    Q_current = PQ[1]                    
+                    Q_current = PQ[1]                   
                     if(BDType=='Edge'):  Q_connect=np.flip(PQ_connect[1]) #the dof on the other side is reversed
                     else: Q_connect = PQ_connect[1]
                     if(debug2): print('Q_Current',Q_current,'Q_Connect',Q_connect)
+                    
+                    #* Consider thickness variation
+                    Q_current*=h_current 
+                    Q_connect*=h_connect
 
                     #print(it+1,'alpha',alpha)
+                    #* Key iteration equation
                     P_new=P_old-alpha*(Q_current+Q_connect)
                     if(debug2): print('p_new',P_new,'p_old',P_old)
 
@@ -178,6 +186,9 @@ def PDD_OPT(obj, P_old_old,Q_cur_old,Q_con_old,alpha_old):
             #Local bdID is determined using intersection coordinates
             PQ = obj.BEMobjs[DomainID].PostProcess.get_BDSolution(EdgeID)
             PQ_connect = obj.BEMobjs[DomainID_connect].PostProcess.get_BDSolution(EdgeID_connect)
+            h_current=obj.BEMobjs[DomainID].h
+            h_connect=obj.BEMobjs[DomainID_connect].h
+
             #PQ_connect=[np.flip(PQ_connect[0]),np.flip(PQ_connect[1])]
 
             P_old = PQ[0]
@@ -186,6 +197,10 @@ def PDD_OPT(obj, P_old_old,Q_cur_old,Q_con_old,alpha_old):
             #Q_connect=np.flip(PQ_connect[1])
             if(BDType=='Edge'):  Q_connect=np.flip(PQ_connect[1]) #the dof on the other side is reversed
             else: Q_connect = PQ_connect[1]
+
+            #* Consider thickness variation
+            Q_current*=h_current
+            Q_connect*=h_connect
 
             #for optimal relxation parameters
             h_dif = P_old - P_old_old[IntID]
