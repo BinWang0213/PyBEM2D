@@ -29,6 +29,7 @@ import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 #from matplotlib.mlab import griddata
 from scipy.interpolate import griddata
+from scipy import integrate
 import matplotlib
 from matplotlib import rcParams
 
@@ -157,8 +158,11 @@ class BEM_2DPostprocess:
 
     ###########Post-processing Module#################
     def get_BDFlux(self,bd_markerID):
-        """Get the real flux value of a boundary
-           
+        """Get the real flux value of a boundary by numerical integration
+        
+        Influx + 
+        Outflux -
+
         Arguments
         ---------
         bd_markerID  -- boundary marker id
@@ -166,21 +170,30 @@ class BEM_2DPostprocess:
         Author:Bin Wang(binwang.0213@gmail.com)
         Date: July. 2017
         """
+        
         q=[]#flux,dp/dn
-
         elementID=self.Mesh.bdmarker2element(bd_markerID)#find the element idx on this edge
-
-        if (bd_markerID>self.Mesh.Num_boundary-1):#this is a trace
+        bd_type=self.Mesh.getBDType(bd_markerID)
+        
+        if(bd_type=='Trace'):
             ti = elementID[0][0]  # tracerID
-            for ei, pl in enumerate(self.BEMobj.BEs_trace[ti]):
-                q = q+ pl.get_Q()
+            Eles=self.BEMobj.BEs_trace[ti]
+        if(bd_type=='Edge'):
+            Eles=[self.BEMobj.BEs_edge[ei] for ei in elementID]
+        if(bd_type=='Trace' or bd_type=='Edge'):
+            for pl in Eles:
+                def q_i(i):
+                    N_i=pl.get_ShapeFunc(local=i)
+                    Q=pl.get_Q()
+                    return np.dot(N_i,Q)
+                Q_Integrate=integrate.quad(q_i, -1, 1)[0]*pl.get_Jac()
+                q.append(Q_Integrate)
 
-        else:  # this is a boundary edge
-            for i in range(len(elementID)):  # loop for all elements on this edge
-                pl = self.BEMobj.BEs_edge[elementID[i]]
-                q.append(np.array(pl.get_Q())*pl.length)
+        if(bd_type=='Source'):
+            ele=self.BEMobj.BEs_source[elementID[0]]
+            q=[-ele.Q[0]] #Source solution has reverse influx and outflux sign
 
-        return q,sum(q)
+        return sum(q)*self.BEMobj.h #Consider the domain thickness
 
     def get_BDSolution(self,bd_markerID):
         """Get the solution variable(p,ux,uy) at all nodes on any given boundary (bd_markerID)
@@ -199,8 +212,9 @@ class BEM_2DPostprocess:
         v=[]#flux in y direction,dp/dy
 
         elementID=self.Mesh.bdmarker2element(bd_markerID)#find the element idx on this edge
+        bd_type=self.Mesh.getBDType(bd_markerID)
 
-        if (bd_markerID>self.Mesh.Num_boundary-1):#this is a trace
+        if (bd_type=='Trace'):#this is a trace
             ti = elementID[0][0]#tracerID
             for ei, pl in enumerate(self.BEMobj.BEs_trace[ti]):
                 pq = pl.get_PQ()
@@ -209,7 +223,7 @@ class BEM_2DPostprocess:
                 u+=pl.get_U()
                 v+=pl.get_V()
         
-        else:#this is a boundary edge
+        if (bd_type=='Edge'):#this is a edge
             for i in range(len(elementID)):#loop for all elements on this edge
                 ele=self.BEMobj.BEs_edge[elementID[i]]
                 pq=ele.get_PQ()
@@ -217,6 +231,13 @@ class BEM_2DPostprocess:
                 q+=pq[1]
                 u+=ele.get_U()
                 v+=ele.get_V()
+        
+        if(bd_type=='Source'):
+            ele=self.BEMobj.BEs_source[elementID[0]]
+            p=ele.P
+            q=ele.Q
+            u=ele.u
+            v=ele.v
 
         #darcy flow, velcoity=-dp/dx
         p=np.array(p)
@@ -376,14 +397,13 @@ class BEM_2DPostprocess:
         XY[:,1:4]=Y
         return XY
 
-    def plot_Solution_overline(self,Pts0,Pts1,plot=1,func=None):
+    def plot_Solution_overline(self,Pts0,Pts1,NumSamples=100,plot=1,func=None):
         """Line plot solution along LINE(pts0,pts1)
         
         Author:Bin Wang(binwang.0213@gmail.com)
         Date: July. 2017
         """
-        tol=1e-3
-        Pts = EndPointOnLine(Pts0, Pts1, Nseg=100, refinement="linspace")
+        Pts = EndPointOnLine(Pts0, Pts1, Nseg=NumSamples, refinement="linspace")
         
         if(func is None):
             Y = np.array([self.BEMobj.get_Solution(p) for p in Pts])

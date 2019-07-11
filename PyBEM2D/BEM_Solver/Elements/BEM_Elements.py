@@ -315,6 +315,10 @@ class BEM_element(object):
         if(mode==1):
             self.bd_values=bd_value
 
+    def get_Jac(self):
+        #Jacobian of the element
+        return self.length/2.0
+
     def get_ShapeFunc(self,Pts=None,local=None):
         #Interpolate the solution on the 1D boundary element
         #order=0-constant,1-linear,2-quadratic
@@ -336,7 +340,7 @@ class BEM_element(object):
             phi.append(1)
         
         return np.array(phi)
-    
+
     def get_DerivShapeFunc(self,Pts=None,local=None):
         
         dphi = []  # weights of shape function
