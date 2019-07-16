@@ -647,9 +647,11 @@ class BEM_2DMesh:
         [ID1,ID2,...]   Pts on a Boundary element
         [(TraceID1,EleID1),(TraceID2,EleID2)] Pts on a Trace element
         0,1,2...        Pts on a source element
+
         '''
         Location='Interior'
         element=[]
+
         #Boundary edge
         for i in range(self.Num_boundary):#edge search
             Node=self.Pts_e[i]
@@ -668,7 +670,8 @@ class BEM_2DMesh:
                         Location='Edge'
                         element.append(ID)
                         break #element belonging is enough
-
+        
+        if(len(element)>0): return Location,element
         
         #Internal trace
         for ti in range(self.Num_trace):
@@ -688,6 +691,8 @@ class BEM_2DMesh:
                         element.append([TracerID,ID])
                         break  # element belonging is enough
 
+        if(len(element)>0): return Location,element
+
         #Internal source
         for si in range(self.Num_source):
             Node=self.Pts_s[si]
@@ -696,12 +701,8 @@ class BEM_2DMesh:
             if(dist<self.tol):
                 Location='Source'
                 return Location,si
-
-
-        if(len(element)>=1): #1 general element 2 edge connection points
-            return Location,element
-        else: 
-            return Location,-1
+        
+        return Location,-1
 
     def element2edge(self,idx_element):
         #find the edge index form a elemetn index

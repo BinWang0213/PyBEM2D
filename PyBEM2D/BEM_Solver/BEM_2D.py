@@ -297,7 +297,7 @@ class BEM2D:
         Date: July. 2017
         """
         Pts_Element,Pts_location = self.Mesh.point_on_element(Pts)  # check point location
-        #print(Pts_location)
+        
         return Field_Solve_all(Pts[0], Pts[1], self.BEs_edge,self.BEs_trace,self.BEs_source,
         self.Mesh, elementLoc=Pts_Element,elementID=Pts_location)
             

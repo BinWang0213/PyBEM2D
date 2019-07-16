@@ -509,7 +509,7 @@ def Field_Solve_all(xi,yi,panels,traces,sources,mesh,elementLoc='Interior',eleme
             #print("Query ponit is on trace",Pts,elementID)
             #Element = traces[elementID[0][0]][elementID[0][1]]
             #Trace is not accurate, get the solution next to it
-            return Field_Solve_all(xi+1e-5,yi,panels,traces,sources,mesh,-1)
+            return Field_Solve_all(xi+1e-5,yi-1e-3,panels,traces,sources,mesh,elementID=-1)
 
         if(elementLoc=='Edge'):
             Element = panels[elementID[0]]
