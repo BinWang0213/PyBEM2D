@@ -639,10 +639,16 @@ class BEM_2DMesh:
             return -1
     
     def point_on_element(self, Pts):
-        #check and determine the element which a point is located on edge or trace
-        #Currently, only boundary edge support
-        #[Output] [elementID1,elementID2....] -1 - not on edge
-        #print(Pts)
+        '''check and determine the element which a point is located on edge or trace
+
+        Return
+        --------
+        -1              Interior node
+        [ID1,ID2,...]   Pts on a Boundary element
+        [(TraceID1,EleID1),(TraceID2,EleID2)] Pts on a Trace element
+        0,1,2...        Pts on a source element
+        '''
+        Location='Interior'
         element=[]
         #Boundary edge
         for i in range(self.Num_boundary):#edge search
@@ -659,6 +665,7 @@ class BEM_2DMesh:
                     Pts_a = (self.BEMobj.BEs_edge[ID].xa, self.BEMobj.BEs_edge[ID].ya)
                     Pts_b = (self.BEMobj.BEs_edge[ID].xb, self.BEMobj.BEs_edge[ID].yb)
                     if(point_on_line(Pts, Pts_a, Pts_b,self.tol)):
+                        Location='Edge'
                         element.append(ID)
                         break #element belonging is enough
 
@@ -677,13 +684,24 @@ class BEM_2DMesh:
                     Pts_a = (self.BEMobj.BEs_trace[ti][ID].xa, self.BEMobj.BEs_trace[ti][ID].ya)
                     Pts_b = (self.BEMobj.BEs_trace[ti][ID].xb, self.BEMobj.BEs_trace[ti][ID].yb)
                     if(point_on_line(Pts, Pts_a, Pts_b,self.tol)):
+                        Location='Trace'
                         element.append([TracerID,ID])
                         break  # element belonging is enough
 
+        #Internal source
+        for si in range(self.Num_source):
+            Node=self.Pts_s[si]
+            dist=calcDist(Node,Pts)
+
+            if(dist<self.tol):
+                Location='Source'
+                return Location,si
+
+
         if(len(element)>=1): #1 general element 2 edge connection points
-            return element
+            return Location,element
         else: 
-            return -1
+            return Location,-1
 
     def element2edge(self,idx_element):
         #find the edge index form a elemetn index

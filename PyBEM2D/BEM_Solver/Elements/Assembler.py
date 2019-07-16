@@ -428,7 +428,7 @@ def solution_allocate_all(panels, traces, sources, mesh, X, debug=0):
         V = [0] * p_i.ndof
         for ni in range(p_i.ndof):
             x, y = Nodes[ni][0], Nodes[ni][1]
-            P, U[ni], V[ni] = Field_Solve_all(x, y, panels,traces,sources, mesh, -2)
+            P, U[ni], V[ni] = Field_Solve_all(x, y, panels,traces,sources, mesh, elementID=-2)
         p_i.set_UV(U, V)
     
     for ti in range(mesh.Num_trace):  # Trace
@@ -438,10 +438,10 @@ def solution_allocate_all(panels, traces, sources, mesh, X, debug=0):
             V = [0] * p_i.ndof
             for ni in range(p_i.ndof):
                 x, y = Nodes[ni][0], Nodes[ni][1]
-                P, U[ni], V[ni] = Field_Solve_all(x, y, panels,traces,sources, mesh, -2)
+                P, U[ni], V[ni] = Field_Solve_all(x, y, panels,traces,sources, mesh, elementID=-2)
             pl.set_UV(U,V)
 
-def Field_Solve_all(xi,yi,panels,traces,sources,mesh,elementID=-1):
+def Field_Solve_all(xi,yi,panels,traces,sources,mesh,elementLoc='Interior',elementID=-1):
     #Calculate domain solution using BIE formulation-Page 105 @ BEM Introduction Course-1991
     #elementID=-1 internal point   elementID>=0 boundary point
 
@@ -456,9 +456,9 @@ def Field_Solve_all(xi,yi,panels,traces,sources,mesh,elementID=-1):
     k_tensor = mesh.BEMobj.k
     k_coeff = mesh.BEMobj.k_coeff
     miu = mesh.BEMobj.miu
-
-    if (elementID == -1 or elementID == -2):  # query point locate on the internal domain
-        
+    
+    #if (elementID == -1 or elementID == -2):  # query point locate on the internal domain
+    if(elementLoc=='Interior'):   
         #Edge element contribution
         for i in range(NE):
             Element = panels[i]
@@ -495,34 +495,41 @@ def Field_Solve_all(xi,yi,panels,traces,sources,mesh,elementID=-1):
         P = p
         U = (u * k_tensor[0] + v * k_tensor[1])
         V = (u * k_tensor[1] + v * k_tensor[2])
-    
-    if(elementID == -2):  # Node on boundary c=1/2
-        P = P * 2.0
-        U = -U * 2.0
-        V = -V * 2.0
 
-    if (elementID != -1 and elementID != -2):  # query point locate on the element
-        
+        if(elementID == -2):  # Node on boundary c=1/2
+            P = P * 2.0
+            U = -U * 2.0
+            V = -V * 2.0
+
+    #if (elementID != -1 and elementID != -2):  # query point locate on the element
+    else:  # query point locate on the element   
         Pts=(xi,yi) #query point
-        
-        if(type(elementID[0]) is list):#Trace element elementID[0]=[TraceID,EleID]
+
+        if(elementLoc=='Trace'):#Trace element elementID[0]=[TraceID,EleID]
             #print("Query ponit is on trace",Pts,elementID)
             #Element = traces[elementID[0][0]][elementID[0][1]]
             #Trace is not accurate, get the solution next to it
             return Field_Solve_all(xi+1e-5,yi,panels,traces,sources,mesh,-1)
-        elif(elementID[0] < len(panels)):
+
+        if(elementLoc=='Edge'):
             Element = panels[elementID[0]]
             #print('Pts on the %d Edge element'%(elementID[0]))
+            #shape function & Node value
+            phi= Element.get_ShapeFunc(Pts)
+            Pi = Element.get_P()
+            ui = Element.get_U()
+            vi = Element.get_V()
 
-        #shape function & Node value
-        phi= Element.get_ShapeFunc(Pts)
-        Pi = Element.get_P()
-        ui = Element.get_U()
-        vi = Element.get_V()
+            P = np.dot(phi, Pi)
+            U = np.dot(phi, ui)
+            V = np.dot(phi, vi)
+        if(elementLoc=='Source'):
+            Element = sources[elementID]
 
-        P = np.dot(phi, Pi)
-        U = np.dot(phi, ui)
-        V = np.dot(phi, vi)
+            P=Element.get_P()[0]
+            U=0.0 #velocity is singularity at the source point
+            V=0.0
+        
         
         #debug
         #print('Point',Pts)
