@@ -78,7 +78,7 @@ class Source_element(object):
 
 class BEM_element(object):
     """Class object for a single boundary element"""
-    def __init__(self, Pts_a=(0,0),Pts_c=(0,0),Pts_b=(0,0),Type="quad",bd_marker=0):
+    def __init__(self, Pts_a=(0,0),Pts_c=(0,0),Pts_b=(0,0),Type="quad",bd_marker=0,tol=1e-7):
         """Creates a boundary element from A->B.
            The position fo A,B decide the element direction
         
@@ -117,6 +117,7 @@ class BEM_element(object):
         """
         
         #[Geometry]
+        self.tol=tol #! Geometry calculation tolerance
         self.xa, self.ya = Pts_a[0], Pts_a[1]  #First node for a quadratic BE
         self.xb, self.yb = Pts_b[0], Pts_b[1]  #Third node for a quadratic BE
         self.xc,self.yc=0,0
@@ -369,7 +370,7 @@ class BEM_element(object):
 
     def isPtsOnElement(self, xi, yi):
         #Test of a point is on the element
-        return point_on_line((xi, yi), (self.xa, self.ya), (self.xb, self.yb))
+        return point_on_line((xi, yi), (self.xa, self.ya), (self.xb, self.yb),self.tol)
 
     def get_InnerPoints(self,xc,yc,rab=0.00003):
         #When the Neumann BC = 0, the pressure/velocity component can be obtained the close inner point

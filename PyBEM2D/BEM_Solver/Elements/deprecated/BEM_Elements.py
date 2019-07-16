@@ -396,7 +396,7 @@ class BEM_element(object):
 
     def isPtsOnElement(self, xi, yi):
         #Test of a point is on the element
-        return point_on_line((xi, yi), (self.xa, self.ya), (self.xb, self.yb))
+        return point_on_line((xi, yi), (self.xa, self.ya), (self.xb, self.yb),self.tol)
 
     def get_InnerPoints(self,xc,yc,rab=0.00003):
         #When the Neumann BC = 0, the pressure/velocity component can be obtained the close inner point

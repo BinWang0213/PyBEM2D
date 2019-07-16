@@ -118,6 +118,7 @@ class BEM_2DMesh:
         Author:Bin Wang(binwang.0213@gmail.com)
         Date: July. 2017
         """
+        self.tol=1e-7 #!Geometry calculation tolerance
         self.BEMobj=BEMobj
         self.Pts_e=[]
         self.Pts_t=[]
@@ -203,7 +204,8 @@ class BEM_2DMesh:
         #find the domain min,max for plotting
         self.domain_min=(min(np.asarray(self.Pts_e)[:,0]),min(np.asarray(self.Pts_e)[:,1]))
         self.domain_max=(max(np.asarray(self.Pts_e)[:,0]),max(np.asarray(self.Pts_e)[:,1]))        
-        
+        self.tol*=abs(max(self.domain_max)-min(self.domain_min))
+
         #Continous boundary marker index
         bd_marker_id=0
 
@@ -343,7 +345,7 @@ class BEM_2DMesh:
 
 
     ###########Visulation Module################
-    def plot_Mesh(self,Annotation=1,legend=1,node_size=5,img_fname=None):
+    def plot_Mesh(self,Annotation=1,legend=1,node_size=5,scale=1.0,img_fname=None):
         """Plot BEM Mesh
 
         Author:Bin Wang(binwang.0213@gmail.com)
@@ -359,7 +361,7 @@ class BEM_2DMesh:
 
         space = 0.1 * calcDist((x_min, y_min), (x_max, y_max))
 
-        plt.figure(figsize=(5, 4))
+        plt.figure(figsize=(5*scale, 4*scale))
         #plt.axes().set(xlim=[x_min - space, x_max + space],
         #               ylim=[y_min - space, y_max + space], aspect='equal')
         plt.axes().set(aspect='equal')
@@ -430,12 +432,12 @@ class BEM_2DMesh:
                 Node, Node_next = self.Pts_t[i][0], self.Pts_t[i][1]
 
                 rightmiddle = line_leftright(Node, Node_next, space * 0.3)[1]
-                plt.text(*rightmiddle.T, "%s" % (index), fontsize=14)
+                plt.text(*rightmiddle.T, "%s" % (index),color='gray', fontsize=14)
                 index+=1
             
             for i in range(self.Num_source):
                 Node= np.asarray(self.Pts_s[i])*1.03
-                plt.text(*Node.T, "%s" % (index), fontsize=14)
+                plt.text(*Node.T, "%s" % (index), color='r',fontsize=14)
                 index+=1
 
 
@@ -640,7 +642,7 @@ class BEM_2DMesh:
         #check and determine the element which a point is located on edge or trace
         #Currently, only boundary edge support
         #[Output] [elementID1,elementID2....] -1 - not on edge
-        
+        #print(Pts)
         element=[]
         #Boundary edge
         for i in range(self.Num_boundary):#edge search
@@ -649,14 +651,14 @@ class BEM_2DMesh:
                 Node_next=self.Pts_e[0] #round connect
             else: 
                 Node_next=self.Pts_e[i+1]
-            
-            if (point_on_line(Pts,Node,Node_next)):# Found! point on a edge
+            #print('Checking...',Node,Node_next,self.tol,point_on_line(Pts,Node,Node_next,self.tol))
+            if (point_on_line(Pts,Node,Node_next,self.tol)):# Found! point on a edge
                 elementID=self.bdmarker2element(i)#element index on this edge
                 for j in range(len(elementID)):
                     ID = elementID[j]
                     Pts_a = (self.BEMobj.BEs_edge[ID].xa, self.BEMobj.BEs_edge[ID].ya)
                     Pts_b = (self.BEMobj.BEs_edge[ID].xb, self.BEMobj.BEs_edge[ID].yb)
-                    if(point_on_line(Pts, Pts_a, Pts_b)):
+                    if(point_on_line(Pts, Pts_a, Pts_b,self.tol)):
                         element.append(ID)
                         break #element belonging is enough
 
@@ -667,14 +669,14 @@ class BEM_2DMesh:
             Node=self.Pts_t[ti][0]
             Node_next = self.Pts_t[ti][1]
 
-            if (point_on_line(Pts, Node, Node_next)):  # Found! point on a edge
+            if (point_on_line(Pts, Node, Node_next,self.tol)):  # Found! point on a edge
                 elementID = self.bdmarker2element(markerID)  # element index on this edge
                 for j in range(len(elementID)):
                     TracerID = elementID[j][0]
                     ID = elementID[j][1]
                     Pts_a = (self.BEMobj.BEs_trace[ti][ID].xa, self.BEMobj.BEs_trace[ti][ID].ya)
                     Pts_b = (self.BEMobj.BEs_trace[ti][ID].xb, self.BEMobj.BEs_trace[ti][ID].yb)
-                    if(point_on_line(Pts, Pts_a, Pts_b)):
+                    if(point_on_line(Pts, Pts_a, Pts_b,self.tol)):
                         element.append([TracerID,ID])
                         break  # element belonging is enough
 
@@ -695,7 +697,7 @@ class BEM_2DMesh:
                 Node_next=self.Pts_e[0] #round connect
             else:
                 Node_next=self.Pts_e[i+1]
-            if (point_on_line(pts_c,Node,Node_next)):#edge found
+            if (point_on_line(pts_c,Node,Node_next,self.tol)):#edge found
                 return i
 
         print('Error!! Func-element2edge')   
@@ -752,7 +754,7 @@ class BEM_2DMesh:
                 Node_next=self.Pts_e[0] #round connect
             else: 
                 Node_next=self.Pts_e[i+1]
-            if (point_on_line(pts_c,Node,Node_next)):#edge found
+            if (point_on_line(pts_c,Node,Node_next,self.tol)):#edge found
                 return i
         print("Can not find the bd_markerID",Pts0,Pts1)
     

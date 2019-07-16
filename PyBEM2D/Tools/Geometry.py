@@ -116,7 +116,6 @@ def EndPointOnPolygon(Pts_poly,Nseg=20,closed=1):
 def point_in_line(pts,A,B):
     #Test of point(pts) lies on line segment (AB)
     #https://stackoverflow.com/questions/328107/how-can-you-determine-a-point-is-between-two-other-points-on-a-line-segment?noredirect=1&lq=1
-    
     epsilon=0.0000000001
     squaredlengthba=(A[0] - B[0])**2 + (A[1] - B[1])**2
     
@@ -502,10 +501,10 @@ def ShapeFunc_Weight(Pts,Pts_a,Pts_b,order=1):
     return phi
 
 @jit(nopython=True) #Numba acclerated
-def Interp_Nonconforming(Pts_query,Pts,Vals,order=1):
+def Interp_Nonconforming(Pts_query,Pts,Vals,order=1,tol=1e-7):
     """General 1D interpolation along a line segments(Pts) function using shape funciton
        Element-wise shape function is compatible with FEM/BEM discretation
-        
+    #! This function used by caution
     Arguments
     ---------
     order     -- Element order in interpolation side
@@ -539,14 +538,14 @@ def Interp_Nonconforming(Pts_query,Pts,Vals,order=1):
             if(order==0):#constant interpolation
                 Pts_a=Pts[j]
                 Pts_b=Pts[j+1]
-                if(point_on_line(Pts_query[i],Pts_a,Pts_b)):#Found the element it belongs to
+                if(point_on_line(Pts_query[i],Pts_a,Pts_b,tol)):#Found the element it belongs to
                     #ShapeFunc_Interpolation1([0.2,0.3],Ele_Pts)
                     Vals_interp[i]=Vals[j]
 
             if(order==1):#linear interpolation
                 Pts_a=Pts[j]
                 Pts_b=Pts[j+1]
-                if(point_on_line(Pts_query[i],Pts_a,Pts_b)):#Found the element it belongs to
+                if(point_on_line(Pts_query[i],Pts_a,Pts_b,tol)):#Found the element it belongs to
                     #ShapeFunc_Interpolation1([0.2,0.3],Ele_Pts)
                     phi=ShapeFunc_Weight(Pts_query[i],Pts_a,Pts_b,order=order)
                     Vals_interp[i]=phi[0]*Vals[j]+phi[1]*Vals[j+1]
@@ -555,7 +554,7 @@ def Interp_Nonconforming(Pts_query,Pts,Vals,order=1):
                 Pts_a=Pts[2*j]
                 Pts_c=Pts[2*j+1]
                 Pts_b=Pts[2*j+2]
-                if(point_on_line(Pts_query[i],Pts_a,Pts_b)):#Found the element it belongs to
+                if(point_on_line(Pts_query[i],Pts_a,Pts_b,tol)):#Found the element it belongs to
                     #ShapeFunc_Interpolation1([0.2,0.3],Ele_Pts)
                     phi=ShapeFunc_Weight(Pts_query[i],Pts_a,Pts_b,order=order)
                     Vals_interp[i]=phi[0]*Vals[2*j]+phi[1]*Vals[2*j+1]+phi[2]*Vals[2*j+2]
@@ -563,22 +562,34 @@ def Interp_Nonconforming(Pts_query,Pts,Vals,order=1):
 
 
 @jit(nopython=True) #23X faster than original one
-def point_on_line(pts,A,B):
+def point_on_line(pts,A,B,tol=1e-6):
     #Test of point(pts) lies on line segment (AB)-fast
     #https://stackoverflow.com/questions/328107/how-can-you-determine-a-point-is-between-two-other-points-on-a-line-segment?noredirect=1&lq=1
     
-    epsilon=0.0000001
+    epsilon=tol
     squaredlengthba=(A[0] - B[0])**2 + (A[1] - B[1])**2
     
     crossproduct = (pts[1] - A[1]) * (B[0] - A[0]) - (pts[0] - A[0]) * (B[1] - A[1])
+    #print('cross',crossproduct)
     if abs(crossproduct) > epsilon : return False   # (or != 0 if using integers)
 
     dotproduct = (pts[0] - A[0]) * (B[0] - A[0]) + (pts[1] - A[1])*(B[1] - A[1])
-    if dotproduct < 0 : return False
+    #print('dot',dotproduct)
+    if abs(dotproduct)<epsilon: 
+        #print('On the line')
+        return True #SEGMENT_INTERSEC_EXTREMITY_P1
+    if dotproduct < 0: return False
+    
 
     squaredlengthba = (B[0] - A[0])*(B[0] - A[0]) + (B[1] - A[1])*(B[1] - A[1])
-    if dotproduct > squaredlengthba: return False
+    #print('length',squaredlengthba)
+    if abs(dotproduct-squaredlengthba)<epsilon: 
+        #print('On the line')
+        return True #SEGMENT_INTERSEC_EXTREMITY_P2;
+    if (dotproduct-squaredlengthba)>epsilon: return False
+    
 
+    #print('On the line')
     return True
 
 

@@ -512,6 +512,7 @@ def Field_Solve_all(xi,yi,panels,traces,sources,mesh,elementID=-1):
             return Field_Solve_all(xi+1e-5,yi,panels,traces,sources,mesh,-1)
         elif(elementID[0] < len(panels)):
             Element = panels[elementID[0]]
+            #print('Pts on the %d Edge element'%(elementID[0]))
 
         #shape function & Node value
         phi= Element.get_ShapeFunc(Pts)
