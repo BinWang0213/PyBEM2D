@@ -281,6 +281,35 @@ class BEM2D:
         if(DDM==0): print("[Solution] #DOFs=",len(Ab[1]))
 
         return Ab
+        
+    def AssembleLinalg(self,DDM=0,AB=[],debug=1):
+        """Only Assemble the system used for parallel processing
+        
+        Return
+        -----
+        Ab  -- Linear algerba system wait for solving
+
+        Author:Bin Wang(binwang.0213@gmail.com)
+        Date: July. 2017
+        """
+        debug=0
+        if(debug): print("[Solution] Assembling Matrix...")
+        #Ab = build_matrix_trace(self.BEs_edge,self.BEs_trace, self.Mesh, DDM, AB)  # matrix AB
+        Ab = build_matrix_all(self.BEs_edge,self.BEs_trace,self.BEs_source,self.Mesh, DDM, AB)
+        return Ab
+
+    def ApplySolution(self,X=[],debug=1):
+        """Assign the solution vector back to BEM element for post-processing
+        
+        Return
+        -----
+        Ab  -- Linear algerba system wait for solving
+
+        Author:Bin Wang(binwang.0213@gmail.com)
+        Date: July. 2017
+        """
+        solution_allocate_all(self.BEs_edge, self.BEs_trace,self.BEs_source,self.Mesh, X, debug)
+
 
     def get_Solution(self, Pts, bd_markerID=-1):
         """Get the solution variable(p,ux,uy) at any given Point(Pts)
