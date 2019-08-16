@@ -46,13 +46,15 @@ Trace_vert=[]
 L=[((0.1, 0.15), (0.1, 0.6)),((0.1, 0.15), (0.3, 0.15))]
 S=[((0.6,0.6),(0.38,0.6)),((0.38,0.6),(0.38,0.38)),((0.38,0.38),(0.6,0.38)),((0.6,0.38),(0.6,0.14)),((0.6,0.14),(0.38,0.14))]
 U= [((0.72,0.6),(0.72,0.14)),((0.72,0.14),(0.92,0.14)),((0.92,0.14),(0.92,0.6))]
-Points= [((0.195,0.35),(0.205,0.35)),
-      ((0.795,0.35),(0.805,0.35))]
-Trace_vert=L+S+U+Points
-element_esize=0.2 #Edge mesh is important to overall mass balance
+Trace_vert=L+S+U
+
+Source_Points= [(0.2,0.35),(0.8,0.35)]
+
+element_esize=0.1 #Edge mesh is important to overall mass balance
 element_tszie=0.1 #Trace mesh size
 
-BEM_Case1.set_Mesh(Boundary_vert,Trace_vert,element_esize,element_tszie,Type="Const")
+BEM_Case1.set_Mesh(Boundary_vert,Trace_vert,Source_Points,element_esize,element_tszie,Type="Quad")
+BEM_Case1.plot_Mesh()
 
 #2.Set Boundary condition
 bc0=[(4,50),(5,50),(11,50),(12,50),(13,50),(14,10),(15,10)]
