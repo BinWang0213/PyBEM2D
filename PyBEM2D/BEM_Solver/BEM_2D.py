@@ -25,7 +25,7 @@ import matplotlib
 
 #[BEM Elements]
 from .Elements.BEM_Elements import BEM_element
-from .Elements.Assembler import build_matrix_all,solution_allocate_all,Field_Solve_all
+from .Elements.Assembler import build_matrix_all,solution_allocate_all,Field_Solve_all,assemble_RHS
 
 #[BEM Mesh]
 from .BEM_2D_Mesh import BEM_2DMesh
@@ -282,8 +282,8 @@ class BEM2D:
 
         return Ab
         
-    def AssembleMatrix(self,DDM=0,AB=[],debug=1):
-        """Only Assemble the system used for parallel processing
+    def AssembleMatrix(self,debug=1):
+        """Assemble the system (A,B) used for parallel processing
         
         Return
         -----
@@ -295,9 +295,22 @@ class BEM2D:
         debug=0
         if(debug): print("[Solution] Assembling Matrix...")
         #Ab = build_matrix_trace(self.BEs_edge,self.BEs_trace, self.Mesh, DDM, AB)  # matrix AB
-        Ab = build_matrix_all(self.BEs_edge,self.BEs_trace,self.BEs_source,self.Mesh, DDM, AB)
-        if(DDM==0): print("[Solution] #DOFs=",len(Ab[1]))
+        Ab = build_matrix_all(self.BEs_edge,self.BEs_trace,self.BEs_source,self.Mesh)
+        print("[Solution] #DOFs=",len(Ab[1]))
         return Ab
+    
+    def getRHS(self,B):
+        """Get RHS using latest boundary conditions 
+        
+        Return
+        -----
+        Ab  -- Linear algerba system wait for solving
+
+        Author:Bin Wang(binwang.0213@gmail.com)
+        Date: July. 2017
+        """
+        b=assemble_RHS(self.BEs_edge,self.BEs_trace,self.BEs_source,self.Mesh,B)
+        return b
 
     def ApplySolution(self,X=[],debug=1):
         """Assign the solution vector back to BEM element for post-processing

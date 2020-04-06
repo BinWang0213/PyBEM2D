@@ -38,6 +38,13 @@ from .Schemes.P_NN import PNN
 from .Schemes.P_DD import PDD
 from .Schemes.S_DN import SDN
 
+from .Schemes.P_DD_parallel import PDD_parallel
+
+
+#OpenMP Parallel solver
+from multiprocessing import Pool
+from scipy.linalg import lu_factor,lu_solve
+import mkl
 
 #####################################
 #
@@ -98,6 +105,12 @@ class DDM_Solver:
         self.NumObj=len(BEMobj)       #Num of objects
         self.NumInt=len(Intersection)       #Num of intersected edges
         
+        #[Parallel solver data]
+        self.pool=Pool()
+        self.LU_pivs=[]
+        self.Bs=[]
+        self.bs=[]
+
         #[Plot]
         self.error_abs=[]  #abs error at interface,np.sum(abs(Q_new-Q_old)+abs(P_current-P_connect))
         
@@ -105,7 +118,7 @@ class DDM_Solver:
         
     
     ####Main fucntions####
-    def Solve_Iter(self,Method="CG",initial_guess=0.0,TOL=1e-5,max_iters=100,alpha=0.1,opt=0):
+    def Solve_Iter(self,Method="CG",initial_guess=0.0,TOL=1e-5,max_iters=100,alpha=0.1,opt=0,parallel=False):
         """Solve a multi-domain problem using a specific method
            Reference: Section 3 in the reference paper
 
@@ -142,7 +155,10 @@ class DDM_Solver:
             PNN(self,alpha,TOL,max_iters,opt)
         #Parallel Dirichlet-Dirichlet method with dynamic relaxation paramters
         if(Method=='P-DD'):
-            PDD(self,alpha,TOL,max_iters,opt)
+            if(parallel==True):
+                PDD_parallel(self,alpha,TOL,max_iters,opt)
+            else:
+                PDD(self,alpha,TOL,max_iters,opt)
         #Sequential Dirichlet-Neumann method with dynamic relaxation paramters
         if(Method=='S-DN'):
             print('[Warnning] This method is not applicable for new input format')
@@ -154,6 +170,45 @@ class DDM_Solver:
         if(Method=="CG"):
             assert 3==1, 'This method is not available'
             #self.CG_loop(TOL)
+
+    def initLUSolver(self):
+        """LU solver initlization
+
+        Due to the A matrix never change, expansive LU factorization can only run once
+
+        Author:Bin Wang(binwang.0213@gmail.com)
+        Date: April. 2020
+        """
+        #Assemble linear system for BEM
+        for domain in self.BEMobjs:
+            A,b,B=domain.AssembleMatrix()
+            #Compute LU factorization at the beginning
+            self.LU_pivs.append(lu_factor(A))
+            self.bs.append(b)
+            self.Bs.append(B)
+        
+        #Set disable mkl backend multithreading
+        mkl.set_num_threads(1)
+        #print(self.bs,self.Bs,mkl.set_num_threads(1))
+
+    def LUSolve(self,parallel=True):
+        """LU solver support multi-threading parallel
+
+        Due to the A matrix never change, expansive LU factorization can only run once
+
+        Author:Bin Wang(binwang.0213@gmail.com)
+        Date: April. 2020
+        """
+        if(parallel==True):
+            Xs=self.pool.starmap(lu_solve, zip(self.LU_pivs, self.bs))   
+        else:
+            Xs=[]
+            for LU_piv,b in zip(self.LU_pivs, self.bs):
+                Xs+=[lu_solve(LU_piv,b)]
+        
+        for X,domain in zip(Xs,self.BEMobjs):
+            domain.ApplySolution(X)
+        #print(Xs)
 
     ####Plot functions####
     def plot_mesh(self):

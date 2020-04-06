@@ -588,5 +588,50 @@ def update_BCs_trace(panels,traces,sources,mesh,AB=[]):
     return A,b,B
 
 
+def assemble_RHS(panels,traces,sources,mesh,B):
+    
+    debug = 0
+
+    #Collecting prescribed BC values
+    if(debug):
+        print('Prescribed Value')
+    
+    b = np.zeros(mesh.Ndof, dtype=float)
+    # Edge BC
+    for i, pl in enumerate(panels):
+        bdvals = pl.get_bdvals()
+        for j in range(pl.ndof):
+            nodeid = mesh.getNodeId(i, j, 'Edge')
+            b[nodeid] = bdvals[j]
+            if(debug):
+                print("Ele:%s Node:%s BC_Val:%s" %
+                      (i + 1, nodeid + 1, b[nodeid]))
+
+    # Trace BC
+    eleid = 0
+    for ti in range(mesh.Num_trace):  # Trace
+        for i, pl in enumerate(traces[ti]):  # Trace ele
+            bdvals = pl.get_bdvals()
+            for j in range(pl.ndof):
+                nodeid = mesh.getNodeId(eleid, j, 'Trace')
+                b[nodeid] = bdvals[j]
+                if(debug):
+                    print("Ele:%s Node:%s BC_Val:%s" %
+                          (eleid + 1 + mesh.Ne_edge, nodeid + 1, b[nodeid]))
+            eleid = eleid + 1
+
+    # Source BC
+    for i, pl in enumerate(sources):
+        nodeid = mesh.getNodeId(i,0,'Source')
+        b[nodeid] = pl.get_bdvals()[0] #only 1 dof for source
+        if(debug): print("[Source] Ele:%s Node:%s BC_Val:%s" % (eleid+1+mesh.Ne_edge+i,nodeid+1,b[nodeid]))
+
+
+    #Get the final RHS matrix
+    b = np.dot(B, b)
+    
+    return b
+
+
     
 
