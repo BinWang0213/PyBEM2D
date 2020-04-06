@@ -282,7 +282,7 @@ class BEM2D:
 
         return Ab
         
-    def AssembleLinalg(self,DDM=0,AB=[],debug=1):
+    def AssembleMatrix(self,DDM=0,AB=[],debug=1):
         """Only Assemble the system used for parallel processing
         
         Return
@@ -296,6 +296,7 @@ class BEM2D:
         if(debug): print("[Solution] Assembling Matrix...")
         #Ab = build_matrix_trace(self.BEs_edge,self.BEs_trace, self.Mesh, DDM, AB)  # matrix AB
         Ab = build_matrix_all(self.BEs_edge,self.BEs_trace,self.BEs_source,self.Mesh, DDM, AB)
+        if(DDM==0): print("[Solution] #DOFs=",len(Ab[1]))
         return Ab
 
     def ApplySolution(self,X=[],debug=1):
