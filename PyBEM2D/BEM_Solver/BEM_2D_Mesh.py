@@ -760,6 +760,9 @@ class BEM_2DMesh:
         #Get the node coordinates of a edge element
         return self.BEMobj.BEs_edge[eleid].get_nodes()
 
+    def getTraceEleNodeCoords(self,traceid,eleid):
+        #Get the node coordinates of a trace element
+        return self.BEMobj.BEs_trace[traceid][eleid].get_nodes()
 
     def EndPoint2bdmarker(self,Pts0,Pts1):
         #find the bd_markerID based on two end points[Pts0,Pts1]

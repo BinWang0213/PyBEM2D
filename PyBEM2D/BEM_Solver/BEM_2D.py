@@ -209,6 +209,11 @@ class BEM2D:
                             elif(mode==1):                                    
                                 bd_values=self.Mesh.bd2element(self.TypeE_trace,eleid=j,node_values=BCs[i][1])                                
                                 self.BEs_trace[tID][eID].set_BC(BCid,bd_values,Robin_a,mode=1)
+                            elif(mode=='func'):
+                                Pts=self.Mesh.getTraceEleNodeCoords(tID,eID)
+                                func = BCs[i][1]
+                                bd_values = [func(xy) for xy in Pts]
+                                self.BEs_trace[tID][eID].set_BC(BCid,bd_values,Robin_a,mode=1)
                     
                     #Source BC
                     if(bd_markerID>self.Mesh.SourceStartID-1):#This is a source 
